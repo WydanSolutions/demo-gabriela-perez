@@ -2,12 +2,39 @@
  * Exportar tablas a Excel y PDF. Se exporta lo que se ve en pantalla (con los filtros aplicados).
  */
 function expRows(kind,arg){
-  if(kind==='decl'){var rows=declFiltered();return {title:'Declaraciones · '+folderName(arg)+' · '+declYear(),cols:['Cliente','Tipo de DJ','Vencimiento','Presentada','Importe','Medio de pago','Fecha de pago','Estado','Notas'],data:rows.map(function(d){return [cliName(d.clienteId),d.tipoDj||'',fDate(d.venc),fDate(d.presentada),d.importe||'',d.medio||'',fDate(d.fechaPago),d.estado||'',d.notas||''];})};}
+  // Declaraciones (carpetas) y las pestañas propias (DJ INAC, DICOSA): mismas columnas, más las propias de cada una.
+  if(kind==='decl'||kind==='djtab'){
+    var esTab=kind==='djtab', rows=esTab?djTabFiltered(arg):declFiltered(), ex=(djCarpeta(arg)||{}).extra||[];
+    return {title:(esTab?folderName(arg):'Declaraciones · '+folderName(arg))+' · '+(esTab?djTabYear(arg):declYear()),
+      cols:['Cliente','N° de declaración','Tipo de DJ'].concat(ex.map(function(c){return c.l;})).concat(['Vencimiento','Presentada','Importe','Medio de pago','Fecha de pago','Estado','Notas']),
+      data:rows.map(function(d){return [cliName(d.clienteId),d.nroDj||'',d.tipoDj||''].concat(ex.map(function(c){return d[c.k]||'';})).concat([fDate(d.venc),fDate(d.presentada),d.importe||'',d.medio||'',fDate(d.fechaPago),d.estado||'',d.notas||'']);})};
+  }
+  if(kind==='debitos'){var rows=debFiltered();return {title:'Asoc. Civiles · Débitos',cols:['Asociación','Plataforma','Período','Importe','Pago','Fecha de pago','Notas'],data:rows.map(function(b){return [cliNameOr(b.clienteId)||b.asociacion||'',b.plataforma||'',b.periodo||'',b.importe||'',b.cargado?'Sí':'No',fDate(b.fecha),b.notas||''];})};}
   if(kind==='grid'){var gid=arg,meta=GRID_META[gid],rows=Store.data.grids[gid].rows;var cols=['Nombre'].concat(meta.hasTag?['Tipo']:[]).concat(MESES);return {title:meta.title+' '+anioActivo(),cols:cols,data:rows.map(function(r){var row=[r.nombre];if(meta.hasTag)row.push(r.tipo||'');for(var i=0;i<12;i++){var c=gcell(r,i),st=cellEst(c);row.push(st==='done'?(c.fecha?fDate(c.fecha):'Hecho')+(c.enviado?' (enviado)':''):st==='na'?'N/A':st==='pend'?'Pendiente':'');}return row;})};}
   if(kind==='sueldos'){var rows=sldRows(sldSub),sub=sldSubsList().find(function(s){return s.id===sldSub;}),sc=sldCols();return {title:'Sueldos · '+(sub?sub.name:'')+' · '+MESES_L[sldMes]+' '+sldAnio,cols:['Empresa','Estado'].concat(sc.map(function(c){return c.label;})),data:rows.map(function(r){return [r.empresa,r.estado].concat(sc.map(function(c){return c.type==='check'?(r[c.key]?'Sí':''):(r[c.key]||'');}));})};}
   // Clientes: todas las columnas de la ficha, contraseñas incluidas (pedido del cliente; se avisa antes de exportar).
   if(kind==='clientes'){var rows=_cliFiltered();return {title:'Info. Clientes',cols:['Nombre','Tipo','RUT','BPS','CI','Fecha nac.','Contraseña BPS','Contraseña gub.uy','Códigos gub.uy','WhatsApp','Correo','Dirección','Otros','Observaciones','Notas','Estado'],data:rows.map(function(c){return [c.nombre,c.tipo||'',c.rut||'',c.bps||'',c.ci||'',c.fnac?fDate(c.fnac):'',c.passBps||'',c.passGub||'',c.codGub||'',c.whatsapp||'',c.correo||'',c.direccion||'',c.fosmetal||'',c.otros||'',c.notas||'',c.archivado?'Archivado':'Activo'];})};}
+  if(kind==='gastos'){
+    var y=gstYear();
+    if(gstVista==='anual'){
+      var rows=[],porCat={},cats=[];
+      for(var m=0;m<12;m++){ gstFilasMes(y,m).forEach(function(f){ var c=(f.g.cat||'Sin categoría').trim(); if(!porCat[c]){porCat[c]=new Array(12).fill(0);cats.push(c);} porCat[c][m]+=f.importe||0; }); }
+      cats.forEach(function(c){ rows.push([c].concat(porCat[c].map(function(v){return v?numTxt(v):'';})).concat([numTxt(porCat[c].reduce(function(a,b){return a+b;},0))])); });
+      return {title:'Gastos del estudio '+y,cols:['Categoría'].concat(MESES).concat(['Total']),data:rows};
+    }
+    return {title:'Gastos del estudio · '+MESES_L[gstMes]+' '+y,
+      cols:['Fecha','Gasto','Categoría','Proveedor','Subtotal','IVA','% deducible','IVA deducible','Importe','Estado','Fecha de pago','Forma de pago','Medio','N° factura','Notas'],
+      data:gstFiltradas().map(function(f){ var g=f.g;
+        var esCuota=(f.tipo==='cuota'), iva=esCuota?null:(honNum(g.iva)||0);
+        return [fDate(f.fecha),g.concepto+(f.det?' ('+f.det+')':''),g.cat||'',g.proveedor||'',
+          esCuota?'':numTxt(Math.round(((honNum(g.importe)||0)-(honNum(g.iva)||0))*100)/100),
+          iva?numTxt(iva):'', iva?((g.ivaDed||100)+'%'):'', iva?numTxt(gstIvaDeducible(g)):'',
+          numTxt(f.importe), f.pagado?'Pagado':'Pendiente',fDate(esCuota?f.c.fechaPago:g.fechaPago),
+          g.forma==='credito'?('Crédito '+g.cuotas+' cuotas'):'Contado',g.medio||'',g.factura||'',g.notas||''];
+      })};
+  }
   if(kind==='hon')return honExpRows();
+  if(kind==='imp')return impExpRows();
   return {title:'',cols:[],data:[]};
 }
 function doExport(kind,fmt,arg){if(kind==='clientes'&&Boveda.necesitaPara(Store.all('clientes'))){Boveda.pedir(function(){doExport(kind,fmt,arg);});return;}if(kind==='clientes'&&!confirm('El archivo va a incluir las contraseñas de los clientes, sin cifrar.\n\nGuardalo en un lugar seguro y no lo mandes por mail ni WhatsApp. ¿Exportar igual?'))return;var d=expRows(kind,arg);if(!d.data.length){toast('Nada para exportar');return;}if(fmt==='xls')exportExcel(d.title,d.cols,d.data);else exportPDF(d.title,d.cols,d.data);}

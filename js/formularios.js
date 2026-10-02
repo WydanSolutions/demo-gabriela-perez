@@ -16,10 +16,18 @@ const FORMS={
     {k:'otros',l:'Observaciones',t:'textarea'},{k:'notas',l:'Notas',t:'textarea'} ]},
   dj:{col:'dj',title:'Declaración',fields:[
     {k:'clienteId',l:'Cliente',t:'cliinput',req:true},
-    {k:'tipoDj',l:'Tipo de DJ',t:'text',half:true},{k:'estado',l:'Estado',t:'select',opts:['Pendiente','En proceso','Presentada'],half:true},
-    {k:'venc',l:'Vencimiento',t:'date',half:true},{k:'presentada',l:'Presentada (fecha)',t:'date',half:true},
-    {k:'importe',l:'Importe',t:'text',half:true},{k:'medio',l:'Medio de pago',t:'datalist',list:'dl-medio',half:true},
-    {k:'fechaPago',l:'Fecha de pago',t:'date'},
+    {k:'nroDj',l:'N° de declaración',t:'text',half:true},{k:'tipoDj',l:'Tipo de DJ',t:'text',half:true},
+    // "solo": el campo aparece únicamente en esa carpeta (los kilos de carne, solo en DJ INAC).
+    {k:'kilos',l:'Kilos de carne',t:'text',solo:'inac'},
+    {k:'estado',l:'Estado',t:'select',opts:['Pendiente','En proceso','Presentada'],half:true},{k:'venc',l:'Vencimiento',t:'date',half:true},
+    {k:'presentada',l:'Presentada (fecha)',t:'date',half:true},{k:'importe',l:'Importe',t:'text',half:true},
+    {k:'medio',l:'Medio de pago',t:'datalist',list:'dl-medio',half:true},{k:'fechaPago',l:'Fecha de pago',t:'date',half:true},
+    {k:'notas',l:'Notas',t:'textarea'} ]},
+  debito:{col:'debitos',title:'Débito · Asoc. civil',fields:[
+    {k:'asociacion',l:'Asociación civil',t:'cliinput',cliTipo:'Asociación civil',req:true},
+    {k:'plataforma',l:'Plataforma / tarjeta',t:'datalist',list:'dl-plat',half:true},{k:'periodo',l:'Período (mes)',t:'text',half:true},
+    {k:'importe',l:'Importe',t:'text',half:true},{k:'fecha',l:'Fecha de pago',t:'date',half:true},
+    {k:'cargado',l:'',t:'check',checkLabel:'Marcar como pago'},
     {k:'notas',l:'Notas',t:'textarea'} ]},
   tarea:{col:'tareas',title:'Tarea extra',fields:[
     {k:'tarea',l:'Tarea',t:'datalist',list:'dl-tareas',req:true},
@@ -31,12 +39,16 @@ const FORMS={
 let curForm={form:null,id:null};
 function openForm(form,id){
   if(form.startsWith('grid:')){ openGridRow(form.split(':')[1],id); return; }
-  const cfg=FORMS[form]; curForm={form,id:id||null,folder:declFolder};
+  const cfg=FORMS[form]; curForm={form,id:id||null,folder:djCarpetaActual()};
   const o=id?Object.assign({},Store.get(cfg.col,id)):{};
-  $('#modal-title').textContent=(id?'Editar · ':'Nuevo · ')+cfg.title; $('#modal-del').style.display=id?'inline-flex':'none';
+  // Declaraciones: el título dice de qué carpeta es, y se muestran solo los campos de esa carpeta.
+  const carpeta=form==='dj'?(o.folder||curForm.folder):null;
+  const titulo=form==='dj'&&carpeta?folderName(carpeta):cfg.title;
+  const campos=cfg.fields.filter(f=>!f.solo||f.solo===carpeta);
+  $('#modal-title').textContent=(id?'Editar · ':'Nuevo · ')+titulo; $('#modal-del').style.display=id?'inline-flex':'none';
   let html='';
-  for(let i=0;i<cfg.fields.length;i++){const f=cfg.fields[i];
-    if(f.half&&cfg.fields[i+1]&&cfg.fields[i+1].half){html+='<div class="field-2">'+fieldHtml(f,o)+fieldHtml(cfg.fields[i+1],o)+'</div>';i++;}
+  for(let i=0;i<campos.length;i++){const f=campos[i];
+    if(f.half&&campos[i+1]&&campos[i+1].half){html+='<div class="field-2">'+fieldHtml(f,o)+fieldHtml(campos[i+1],o)+'</div>';i++;}
     else html+=fieldHtml(f,o);}
   $('#modal-body').innerHTML=html; $('#modal').classList.add('open');
 }
@@ -68,6 +80,7 @@ function saveForm(){
   if(curForm.form&&curForm.form.startsWith('boveda-')){Boveda.guardarModal();return;}
   if(!modalDatesOk())return;
   if(curForm.form==='honcli'){honCliSave();return;}
+  if(curForm.form==='gasto'){gastoSave();return;}
   if(curForm.form==='note'){var tx=document.getElementById('note-ta').value.trim();if(!tx){toast('Escribí algo en la nota');return;}var nn=curForm.id?Store.get('notes',curForm.id):{id:'n'+Date.now(),date:today()};nn.text=tx;nn.color=_noteColor;if(!curForm.id){Store.data.notes.push(nn);}Store.save();closeModal();renderPanel();toast('Nota guardada');return;}
   // Celda de Empresas / Serv. Profesionales. Ojo: guardar el gid ANTES de closeModal() (que borra curForm);
   // antes se perdía y la tabla no se redibujaba hasta cambiar de pestaña (el "delay" del ✈ Enviado).
@@ -94,12 +107,14 @@ function saveForm(){
     if(f.t==='cliinput'){const nm=(o[f.k]||'').trim(); if(f.k==='clienteId')o.clienteId=nm?ensureCli(nm):''; else {o[f.k]=nm;o.clienteId=nm?ensureCli(nm,f.cliTipo):'';}}
     if(f.t==='clitipo'){if(o[f.k]==='__nuevo'){const nv=document.getElementById('tipo-nuevo');o[f.k]=nv?(nv.value||'').trim():'';}cliTipoAddName(o[f.k]);}
   });
-  if(curForm.form==='dj'&&!curForm.id){o.folder=curForm.folder||declFolder||'sp';o.anio=declYear();}
+  if(curForm.form==='dj'&&!curForm.id){o.folder=curForm.folder||'sp';o.anio=djAnioActual();}
+  if(cfg.col==='debitos'&&o.cargado&&!o.fecha)o.fecha=today();
   const eraEdicion=!!curForm.id;
   Store.upsert(cfg.col,o); closeModal(); renderView(CUR); updateBadges(); toast(eraEdicion?'Cambios guardados':'Creado');
 }
 function deleteCurrent(){
   if(curForm.form==='honcli'){honCliDel();return;}
+  if(curForm.form==='gasto'){gastoDel();return;}
   if(curForm.form==='note'){if(confirm('¿Eliminar esta nota?')){delNote(curForm.id);closeModal();}return;}
   if(curForm.form&&curForm.form.startsWith('grid:')){const gid=curForm.gid;if(confirm('¿Eliminar esta fila?')){Store.data.grids[gid].rows=Store.data.grids[gid].rows.filter(x=>x.id!==curForm.id);Store.save();closeModal();renderGrid(gid);toast('Eliminado');}return;}
   const cfg=FORMS[curForm.form];if(confirm('¿Eliminar este registro?')){Store.remove(cfg.col,curForm.id);closeModal();renderView(CUR);updateBadges();toast('Eliminado');}

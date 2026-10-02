@@ -5,7 +5,7 @@
 function renderAll(){ buildNav(); renderView(CUR); updateBadges(); }
 // Deja la página lista para mostrarse (con los datos ya cargados).
 function prepararApp(){
-  sldAnio=anioActivo(); syncCliList(); buildNav(); applyBrand(); applyAvatar(); aplicarAcento(); aplicarFondo();
+  sldAnio=anioActivo(); syncCliList(); buildNav(); applyBrand(); applyAvatar(); aplicarAcento();
   CUR='panel'; switchView('panel'); updateBadges();
   gcalProgramar(); if(Store.data.gcal&&Store.data.gcal.url&&Store.data.gcal.auto!==false)gcalSync(false);
 }

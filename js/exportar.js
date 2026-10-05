@@ -2,10 +2,10 @@
  * Exportar tablas a Excel y PDF. Se exporta lo que se ve en pantalla (con los filtros aplicados).
  */
 function expRows(kind,arg){
-  // Declaraciones (carpetas) y las pestañas propias (DJ INAC, DICOSA): mismas columnas, más las propias de cada una.
-  if(kind==='decl'||kind==='djtab'){
-    var esTab=kind==='djtab', rows=esTab?djTabFiltered(arg):declFiltered(), ex=(djCarpeta(arg)||{}).extra||[];
-    return {title:(esTab?folderName(arg):'Declaraciones · '+folderName(arg))+' · '+(esTab?djTabYear(arg):declYear()),
+  // Declaraciones: mismas columnas en todas las carpetas, más las propias de cada una (en DJ INAC, los kilos).
+  if(kind==='decl'){
+    var rows=declFiltered(), ex=(djCarpeta(arg)||{}).extra||[];
+    return {title:'Declaraciones · '+folderName(arg)+' · '+declYear(),
       cols:['Cliente','N° de declaración','Tipo de DJ'].concat(ex.map(function(c){return c.l;})).concat(['Vencimiento','Presentada','Importe','Medio de pago','Fecha de pago','Estado','Notas']),
       data:rows.map(function(d){return [cliName(d.clienteId),d.nroDj||'',d.tipoDj||''].concat(ex.map(function(c){return d[c.k]||'';})).concat([fDate(d.venc),fDate(d.presentada),d.importe||'',d.medio||'',fDate(d.fechaPago),d.estado||'',d.notas||'']);})};
   }

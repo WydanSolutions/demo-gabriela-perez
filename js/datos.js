@@ -78,7 +78,7 @@ const Store={
     d.gastos.forEach(function(g){ if(g.conIva){ if(!g.ivaModo)g.ivaModo='incluido'; if(!g.ivaDed)g.ivaDed=100; } });
     if(MODO_DEMO&&!d.gastos.length&&typeof seedGastos==='function'){ d.gastos=seedGastos(); d.cuotas=seedCuotas(d.gastos); }
     if(MODO_DEMO&&!d.impuestos.length&&typeof seedImpuestos==='function')d.impuestos=seedImpuestos();
-    // Lo mismo con DJ INAC, DJ Rural DICOSA y Asoc. Civiles (se sumaron el 02/10/2026).
+    // Lo mismo con DJ INAC, DJ Rural DICOSE y Asoc. Civiles (se sumaron el 02/10/2026).
     if(MODO_DEMO){
       const ej=seedNuevas(), sumar=function(cids){ cids.forEach(function(id){ if(!d.clientes.some(function(c){return c.id===id;})){ const c=ej.clientes.find(function(x){return x.id===id;}); if(c)d.clientes.push(c); } }); };
       ['inac','dicosa'].forEach(function(f){ if(!d.dj.some(function(x){return x.folder===f;})){ const nuevas=ej.dj.filter(function(x){return x.folder===f;}); sumar(nuevas.map(function(x){return x.clienteId;})); d.dj=d.dj.concat(nuevas); } });
@@ -147,7 +147,7 @@ function seed(){
   return {clientes:cl.concat(ej.clientes),dj:dj.concat(ej.dj),debitos:ej.debitos,tareas,grids,cal:eventosEjemplo(),notes:notes,gastos:gastos,cuotas:seedCuotas(gastos),impuestos:seedImpuestos(),gastoCats:GASTO_CATS_DEF.slice(),sueldos:seedSueldos(),sldSubs:defaultSubs(),sldHidden:[],empTipos:EMP_TIPOS_DEF.slice(),cliTipos:CLI_TIPOS_DEF.slice(),honCli:h.cli,honMov:h.mov,gcal:{url:'',auto:true,last:0},panel:PANEL_DEF()};
 }
 
-// Ejemplos de DJ INAC, DJ Rural DICOSA y Asoc. Civiles (también se usan para completar el demo de quien
+// Ejemplos de DJ INAC, DJ Rural DICOSE y Asoc. Civiles (también se usan para completar el demo de quien
 // lo abrió antes de que existieran estas secciones). Todos inventados.
 function seedNuevas(){
   const yy=new Date().getFullYear(), mm=new Date().getMonth()+1, m2=Math.min(mm+1,12);

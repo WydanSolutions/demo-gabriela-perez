@@ -4,15 +4,14 @@
  */
 /* ===== DECLARACIONES (carpetas) ===== */
 let declFolder=null, declAnio=null, declQ='', declEst='', declTipo='';
-// Una "carpeta" es cualquier grupo de declaraciones: las de Declaraciones (FOLDERS) o las que tienen pestaña propia (DJ_TABS).
-function djCarpeta(fid){return FOLDERS.find(x=>x.id===fid)||DJ_TABS.find(x=>x.id===fid);}
+function djCarpeta(fid){return FOLDERS.find(x=>x.id===fid);}
 function folderName(fid){const f=djCarpeta(fid);return f?f.name:fid;}
 function declYear(){return declAnio||anioActivo();}
 function setDeclAnio(y){declAnio=y;renderDecl();}
 function djsDelAnio(){return Store.all('dj').filter(d=>d.anio===declYear());}
-// En qué carpeta y año cae una declaración nueva: la pestaña propia abierta (DJ INAC, DICOSA) o la carpeta de Declaraciones.
-function djCarpetaActual(){return DJ_TABS.some(t=>t.id===CUR)?CUR:declFolder;}
-function djAnioActual(){return DJ_TABS.some(t=>t.id===CUR)?djTabYear(CUR):declYear();}
+// En qué carpeta y año cae una declaración nueva: la carpeta abierta y el año elegido.
+function djCarpetaActual(){return declFolder;}
+function djAnioActual(){return declYear();}
 // Tipo de DJ: lo escribe la usuaria en su casillero (no hay tipos predefinidos). El filtro muestra los que ya se escribieron.
 function djTipos(){const s={};Store.all('dj').forEach(d=>{if(d.tipoDj)s[d.tipoDj]=1;});return Object.keys(s).sort((a,b)=>a.localeCompare(b));}
 // Filtro común: carpeta, año, estado, tipo y texto (busca en cliente, N° de declaración, tipo y notas).
@@ -33,8 +32,8 @@ function renderDecl(){
   h+='<div class="table-wrap" id="dj-table"></div>';
   $('#view-decl').innerHTML=h; renderDeclTable();
 }
-// La tabla de declaraciones. La usan las carpetas de Declaraciones y las pestañas propias (DJ INAC, DICOSA).
-// El N° de declaración va en todas; cada carpeta puede sumar sus columnas (extra), como los kilos de carne de INAC.
+// La tabla de declaraciones. El N° de declaración va en todas; cada carpeta puede sumar sus columnas (extra),
+// como los kilos de carne de DJ INAC.
 function djTablaHtml(rows,fid,vacio){
   const ex=(djCarpeta(fid)||{}).extra||[], nCols=12+ex.length;
   const body=rows.length?rows.map(d=>'<tr>'
@@ -57,8 +56,7 @@ function djTablaHtml(rows,fid,vacio){
 function renderDeclTable(){
   $('#dj-table').innerHTML=djTablaHtml(declFiltered(),declFolder,(declQ||declEst||declTipo)?'Ningún registro coincide con el filtro.':'Sin registros en esta carpeta para '+declYear()+'.');
 }
-// Redibuja la tabla que está a la vista (Declaraciones o una pestaña propia).
-function djRefrescar(){ if(DJ_TABS.some(t=>t.id===CUR))renderDjTabTabla(CUR); else renderDeclTable(); }
+function djRefrescar(){ renderDeclTable(); }
 function djSetCli(id,nombre){const d=Store.get('dj',id);if(!d)return;d.clienteId=ensureCli(nombre);Store.upsert('dj',d);djRefrescar();}
 function openFolder(id){declFolder=id;declQ='';declEst='';declTipo='';renderDecl();}
 function closeFolder(){declFolder=null;renderDecl();}

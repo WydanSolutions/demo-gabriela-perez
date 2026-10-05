@@ -6,8 +6,6 @@
 const NAV=[
   {id:'panel',ico:'▦',label:'Panel'},
   {id:'decl',ico:'📄',label:'Declaraciones'},
-  {id:'inac',ico:'🐄',label:'DJ INAC'},
-  {id:'dicosa',ico:'🐑',label:'DJ Rural DICOSA'},
   {id:'tareas',ico:'🗂',label:'Tareas Extras',badge:'tareas'},
   {id:'debitos',ico:'💳',label:'Asoc. Civiles'},
   {id:'empresas',ico:'🏢',label:'Empresas'},
@@ -24,4 +22,4 @@ function switchView(id){
   if(typeof finEsSub==='function'&&finEsSub(id)){ finTab=id; id='finanzas'; }
   CUR=id; document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); $('#view-'+id).classList.add('active'); document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.v===id)); window.scrollTo({top:0,behavior:'smooth'}); renderView(id); }
 function updateBadges(){ const t=Store.all('tareas').filter(x=>!x.hecho&&x.estado!=='Hecha').length; const b=$('#badge-tareas'); if(b){if(t>0){b.textContent=t;b.style.display='';}else b.style.display='none';} }
-function renderView(id){ syncCliList(); ({panel:renderPanel,decl:renderDecl,inac:()=>renderDjTab('inac'),dicosa:()=>renderDjTab('dicosa'),tareas:renderTareas,debitos:renderDebitos,empresas:()=>renderGrid('empresas'),sprof:()=>renderGrid('sprof'),sueldos:renderSueldos,clientes:renderClientes,finanzas:renderFinanzas,cal:renderCal,config:renderConfig}[id]||(()=>{}))(); }
+function renderView(id){ syncCliList(); ({panel:renderPanel,decl:renderDecl,tareas:renderTareas,debitos:renderDebitos,empresas:()=>renderGrid('empresas'),sprof:()=>renderGrid('sprof'),sueldos:renderSueldos,clientes:renderClientes,finanzas:renderFinanzas,cal:renderCal,config:renderConfig}[id]||(()=>{}))(); }

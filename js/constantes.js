@@ -16,12 +16,8 @@ const FOLDERS=[
   {id:'iyc_nocede',name:'Ind. y Comercio · No CEDE',ico:'🏬',color:'#2e7d52'},
   {id:'rural',name:'Primaria Rural',ico:'🌾',color:'#6c8f1f'},
   {id:'iass',name:'IASS / IRPF',ico:'📄',color:'#b7651b'},
-];
-// Declaraciones con pestaña propia (arriba, en el menú). Se guardan junto con las demás declaraciones
-// (colección dj, con folder = id), así aparecen solas en el Calendario y en el Panel.
-// "extra" = columnas propias de esa declaración, además de las de siempre.
-const DJ_TABS=[
-  {id:'inac',name:'DJ INAC',ico:'🐄',color:'#8a3b2e',sub:'Declaraciones ante INAC, con los kilos de carne de cada una',
-    extra:[{k:'kilos',l:'Kilos de carne',ph:'kg',cls:'num'}]},
-  {id:'dicosa',name:'DJ Rural DICOSA',ico:'🐑',color:'#6c8f1f',sub:'Declaraciones juradas rurales (DICOSA)',extra:[]},
+  // (DICOSE = División de Contralor de Semovientes, MGAP. El id 'dicosa' queda así para no tocar lo ya guardado.)
+  // "extra" = columnas propias de esa carpeta, además de las de siempre (en INAC, los kilos de carne).
+  {id:'inac',name:'DJ INAC',ico:'🐄',color:'#8a3b2e',extra:[{k:'kilos',l:'Kilos de carne',ph:'kg',cls:'num'}]},
+  {id:'dicosa',name:'DJ Rural DICOSE',ico:'🐑',color:'#7a5a2e'},
 ];

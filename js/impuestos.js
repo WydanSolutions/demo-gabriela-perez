@@ -22,12 +22,9 @@ function impFrecuencia(){ return vencCfg().frecuencia==='mensual'?'mensual':'bim
 function setImpFrecuencia(f){ vencCfg().frecuencia=f; Store.save(); renderImpuestos(); }
 
 /* ===== LO QUE CALCULA LA PÁGINA ===== */
-// IVA de lo facturado en Honorarios (honCalc ya lo cobra solo cuando la fila tiene N° de factura).
-function impIvaVentas(y,m){
-  var t=0;
-  honRows().forEach(function(r){ var c=honCalc(r,y,m); if(c.imp!==null)t+=c.iva||0; });
-  return Math.round(t*100)/100;
-}
+// IVA de lo facturado en Honorarios: solo lo que tiene N° de factura, y en el mes de la FECHA DE FACTURA
+// (una factura de setiembre emitida en octubre va al IVA de octubre). Ver honorarios-factura.js.
+function impIvaVentas(y,m){ return honNumerosMes(y,m).iva; }
 // IVA deducible de los gastos del mes (ya contempla el 50% cuando corresponde).
 function impIvaCompras(y,m){ return Math.round(gstIvaDelMes(y,m).ded*100)/100; }
 
@@ -104,7 +101,7 @@ function renderImpuestos(){
     +expBtns('imp')+'</span></div>';
   h+='<div id="imp-kpis">'+impKpisHtml(y)+'</div>';
   h+=impTablaPeriodos(y);
-  h+='<div class="hon-foot">💡 El <b>IVA facturado</b> sale de Honorarios y cuenta solo las filas con N° de factura. '
+  h+='<div class="hon-foot">💡 El <b>IVA facturado</b> sale de Honorarios: cuenta solo las filas con N° de factura y va al mes de la <b>fecha de factura</b>. '
     +'El <b>IVA de gastos</b> sale de Gastos y ya contempla el 50% cuando corresponde. Lo que escribas en '
     +'<b>IVA a pagar</b> e <b>IRPF</b> manda sobre lo calculado: la sugerencia es una ayuda. '
     +'Las fechas de vencimiento se corrigen en <b>⋯ → Configuración</b>.</div>';

@@ -114,3 +114,16 @@ tbody tr.imp-vacio td{color:var(--muted)}
 @media(max-width:760px){
   td.imp-venc .cell-in{width:auto}
 }
+
+/* Gastos por vencimiento y pago (oct. 2026) */
+.pill.st-venc{background:var(--red-l);color:var(--red);border-color:var(--red)}
+.gst-venc,.gst-otro{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-radius:10px;padding:2px 8px;margin-left:6px}
+.gst-venc{background:var(--red-l);color:var(--red)}
+.gst-otro{background:var(--green-l);color:var(--green)}
+.gst-pago{display:block;font-size:10.5px;color:var(--muted);margin-top:3px;white-space:nowrap}
+
+/* Honorarios: fecha de factura y mes vencido (oct. 2026) */
+.hon-iva-a{display:block;font-size:10.5px;font-weight:700;color:var(--blue);margin-top:3px;white-space:nowrap}
+.hon-venc-chip{font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--blue);background:var(--blue-l);border-radius:10px;padding:2px 7px;margin-left:6px;white-space:nowrap}
+.hon-mes-nota{background:var(--blue-l);color:var(--blue);border-radius:8px;padding:8px 12px;font-size:12.5px;margin-bottom:12px}
+.hon-mes-calc{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;margin-top:4px}

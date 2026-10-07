@@ -80,6 +80,7 @@ function saveForm(){
   if(curForm.form&&curForm.form.startsWith('boveda-')){Boveda.guardarModal();return;}
   if(!modalDatesOk())return;
   if(curForm.form==='honcli'){honCliSave();return;}
+  if(curForm.form==='honmes'){honMesSave();return;}
   if(curForm.form==='gasto'){gastoSave();return;}
   if(curForm.form==='note'){var tx=document.getElementById('note-ta').value.trim();if(!tx){toast('Escribí algo en la nota');return;}var nn=curForm.id?Store.get('notes',curForm.id):{id:'n'+Date.now(),date:today()};nn.text=tx;nn.color=_noteColor;if(!curForm.id){Store.data.notes.push(nn);}Store.save();closeModal();renderPanel();toast('Nota guardada');return;}
   // Celda de Empresas / Serv. Profesionales. Ojo: guardar el gid ANTES de closeModal() (que borra curForm);

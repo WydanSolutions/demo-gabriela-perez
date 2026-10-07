@@ -86,6 +86,8 @@ const Store={
       // Grillas sin ningún mes marcado y calendario sin eventos: se completan con ejemplos (02/10/2026).
       if(['empresas','sprof'].every(function(g){ return d.grids[g].rows.every(function(r){ return !Object.keys(r.cells||{}).length; }); }))sembrarCeldas(d.grids);
       if(!d.cal.length)d.cal=eventosEjemplo();
+      // Gastos por vencimiento (07/10/2026): los dos ejemplos nuevos, si no están.
+      if(typeof seedGastosVence==='function')seedGastosVence().forEach(function(g){ if(!d.gastos.some(function(x){return x.id===g.id;}))d.gastos.push(g); });
     }
     if(d.cliTipos.indexOf('Asociación civil')<0)d.cliTipos.push('Asociación civil');
     // La nota de bienvenida se fue mejorando: si en este navegador quedó una versión anterior, se

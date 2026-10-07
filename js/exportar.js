@@ -18,18 +18,18 @@ function expRows(kind,arg){
     var y=gstYear();
     if(gstVista==='anual'){
       var rows=[],porCat={},cats=[];
-      for(var m=0;m<12;m++){ gstFilasMes(y,m).forEach(function(f){ var c=(f.g.cat||'Sin categoría').trim(); if(!porCat[c]){porCat[c]=new Array(12).fill(0);cats.push(c);} porCat[c][m]+=f.importe||0; }); }
+      for(var m=0;m<12;m++){ gstFilasCaja(y,m).forEach(function(f){ var c=(f.g.cat||'Sin categoría').trim(); if(!porCat[c]){porCat[c]=new Array(12).fill(0);cats.push(c);} porCat[c][m]+=f.importe||0; }); }
       cats.forEach(function(c){ rows.push([c].concat(porCat[c].map(function(v){return v?numTxt(v):'';})).concat([numTxt(porCat[c].reduce(function(a,b){return a+b;},0))])); });
       return {title:'Gastos del estudio '+y,cols:['Categoría'].concat(MESES).concat(['Total']),data:rows};
     }
     return {title:'Gastos del estudio · '+MESES_L[gstMes]+' '+y,
-      cols:['Fecha','Gasto','Categoría','Proveedor','Subtotal','IVA','% deducible','IVA deducible','Importe','Estado','Fecha de pago','Forma de pago','Medio','N° factura','Notas'],
+      cols:['Vence','Gasto','Categoría','Proveedor','Subtotal','IVA','% deducible','IVA deducible','Importe','Estado','Fecha de pago','Forma de pago','Medio','N° factura','Notas'],
       data:gstFiltradas().map(function(f){ var g=f.g;
         var esCuota=(f.tipo==='cuota'), iva=esCuota?null:(honNum(g.iva)||0);
         return [fDate(f.fecha),g.concepto+(f.det?' ('+f.det+')':''),g.cat||'',g.proveedor||'',
           esCuota?'':numTxt(Math.round(((honNum(g.importe)||0)-(honNum(g.iva)||0))*100)/100),
           iva?numTxt(iva):'', iva?((g.ivaDed||100)+'%'):'', iva?numTxt(gstIvaDeducible(g)):'',
-          numTxt(f.importe), f.pagado?'Pagado':'Pendiente',fDate(esCuota?f.c.fechaPago:g.fechaPago),
+          numTxt(f.importe), f.pagado?'Pagado':(f.fecha&&f.fecha<today()?'Vencido':'Pendiente'),fDate(esCuota?f.c.fechaPago:g.fechaPago),
           g.forma==='credito'?('Crédito '+g.cuotas+' cuotas'):'Contado',g.medio||'',g.factura||'',g.notas||''];
       })};
   }

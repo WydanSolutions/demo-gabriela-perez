@@ -78,9 +78,12 @@ function gstFormPintar(){
     +'<div class="gseg gst-forma"><button type="button" class="gv'+(credito?'':' active')+'" onclick="gstFormSetForma(\'contado\')">Contado</button>'
     +'<button type="button" class="gv'+(credito?' active':'')+'" onclick="gstFormSetForma(\'credito\')">Crédito / cuotas</button></div></div>';
   if(!credito){
-    h+='<label class="chkline"><input type="checkbox" data-k="pagado" '+(g.pagado?'checked':'')+'> Ya está pagado</label>'
-      +'<div class="field-2"><div class="field"><label>Fecha de pago</label><input type="date" data-k="fechaPago"'+DR+' value="'+esc(g.fechaPago||'')+'"></div>'
-      +'<div class="field"><label>Medio de pago</label><input data-k="medio" list="dl-medio" autocomplete="off" value="'+esc(g.medio||'')+'"></div></div>';
+    // Oct. 2026: el vencimiento manda en qué mes aparece el gasto (si se deja vacío, la fecha de la compra).
+    h+='<div class="field-2"><div class="field"><label>Vence <span class="opt">(si es otra fecha)</span></label><input type="date" data-k="vence"'+DR+' value="'+esc(g.vence||'')+'">'
+      +'<div class="gst-ayuda">Ej.: la factura de UTE del 25/09 que vence el 10/10. Vacío = vence el día de la compra.</div></div>'
+      +'<div class="field"><label>Medio de pago</label><input data-k="medio" list="dl-medio" autocomplete="off" value="'+esc(g.medio||'')+'"></div></div>'
+      +'<label class="chkline"><input type="checkbox" data-k="pagado" '+(g.pagado?'checked':'')+'> Ya está pagado</label>'
+      +'<div class="field"><label>Fecha de pago <span class="opt">(cuándo salió la plata)</span></label><input type="date" data-k="fechaPago"'+DR+' value="'+esc(g.fechaPago||'')+'"></div>';
   }else{
     h+='<div class="gst-box"><div class="field-2" style="margin:0">'
       +'<div class="field"><label>Cantidad de cuotas</label><input type="number" min="1" max="60" data-k="cuotas" value="'+esc(g.cuotas||6)+'" oninput="gstFormResumen()"></div>'
@@ -178,8 +181,12 @@ function gastoSave(){
   o.ivaModo=o.conIva?g.ivaModo:'incluido';
   o.ivaDed=o.conIva?(g.ivaDed||100):100;
   o.forma=credito?'credito':'contado';
-  if(credito){ o.cuotas=N; o.primera=g.primera; o.pagado=false; o.fechaPago=''; }
-  else { o.cuotas=null; o.primera=''; o.pagado=!!g.pagado; o.fechaPago=o.pagado?(g.fechaPago||o.fecha):''; }
+  if(credito){ o.cuotas=N; o.primera=g.primera; o.pagado=false; o.fechaPago=''; o.vence=''; }
+  else {
+    o.cuotas=null; o.primera='';
+    o.vence=(g.vence&&g.vence!==o.fecha)?g.vence:'';        // vacío = vence el día de la compra
+    o.pagado=!!g.pagado; o.fechaPago=o.pagado?(g.fechaPago||o.vence||o.fecha):'';
+  }
   gstCatAddName(o.cat);
   var guardado=Store.upsert('gastos',o);
   gstSincronizarCuotas(guardado);

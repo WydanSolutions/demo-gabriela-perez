@@ -37,6 +37,22 @@ const FORMS={
     {k:'info',l:'Info / detalle de la tarea',t:'textarea'} ]},
 };
 let curForm={form:null,id:null};
+
+/* Ventana chica para pedir UN texto (el nombre de un tipo, por ejemplo).
+   Reemplaza al prompt() del navegador: esa ventanita gris no se parece en nada al resto de
+   la página y en varios celulares se porta mal, igual que pasaba con las listas desplegables.
+   Uso: pedirTexto('Título','Etiqueta', valorInicial, 'Texto del botón', function(valor){ ... }) */
+let _textoLuego=null;
+function pedirTexto(titulo,label,valor,boton,alGuardar){
+  _textoLuego=alGuardar; curForm={form:'texto'};
+  $('#modal-title').textContent=titulo;
+  $('#modal-del').style.display='none';
+  $('#modal-body').innerHTML='<div class="field"><label>'+esc(label)+'</label>'
+    +'<input type="text" id="texto-uno" value="'+esc(valor||'')+'" onkeydown="if(event.key===\'Enter\')saveForm()"></div>';
+  const b=$('#modal .modal-foot .btn-primary'); if(b)b.textContent=boton||'Guardar';
+  $('#modal').classList.add('open');
+  setTimeout(function(){ const i=document.getElementById('texto-uno'); if(i){ i.focus(); i.select(); } },60);
+}
 function openForm(form,id){
   if(form.startsWith('grid:')){ openGridRow(form.split(':')[1],id); return; }
   const cfg=FORMS[form]; curForm={form,id:id||null,folder:djCarpetaActual()};
@@ -77,6 +93,11 @@ function fieldHtml(f,o){
 }
 function saveForm(){
   if(curForm.form==='noop'){closeModal();return;}
+  if(curForm.form==='texto'){
+    var _ti=document.getElementById('texto-uno'), _tv=_ti?(_ti.value||'').trim():'';
+    if(!_tv){ toast('Escribí un nombre'); if(_ti)_ti.focus(); return; }
+    var _tf=_textoLuego; _textoLuego=null; closeModal(); if(_tf)_tf(_tv); return;
+  }
   if(curForm.form&&curForm.form.startsWith('boveda-')){Boveda.guardarModal();return;}
   if(!modalDatesOk())return;
   if(curForm.form==='honcli'){honCliSave();return;}

@@ -117,6 +117,10 @@ function gstFilasMes(y,m){
     var vence=gstEnMes(it.vence,y,m), pagoAca=it.pagado&&gstEnMes(it.fechaPago,y,m);
     var arrastre=esActual&&!it.pagado&&!!it.vence&&it.vence<inicio;
     if(!vence&&!pagoAca&&!arrastre)return;
+    // Pagado por adelantado: ya salió la plata en un mes anterior, así que se muestra ALLÁ y no acá.
+    // Si no, el mismo gasto figuraba en dos meses (el del pago y el del vencimiento), inflaba
+    // «A pagar este mes» con algo que ya está pagado, y hacía imposible sumar la columna IVA a ojo.
+    if(vence&&!pagoAca&&it.pagado&&it.fechaPago&&it.fechaPago<inicio)return;
     it.fecha=it.vence; it.venceAca=vence; it.pagoAca=pagoAca; it.arrastre=arrastre;
     filas.push(it);
   });
@@ -149,25 +153,7 @@ function gstTotales(filas){
   });
   return t;
 }
-// IVA de las COMPRAS del mes (el crédito fiscal corresponde a la fecha de la factura, no a la de la cuota).
-// Devuelve el IVA de las facturas y cuánto de eso se puede deducir (hay compras que se computan al 50%).
-function gstIvaDelMes(y,m){
-  var t=0, ded=0;
-  Store.all('gastos').forEach(function(g){
-    if(gstAnioDe(g)!==y||gstMesDe(g)!==m)return;
-    var iva=honNum(g.iva)||0; t+=iva; ded+=gstIvaDeducible(g);
-  });
-  return {iva:t,ded:ded};
-}
-// Lo deducible de un gasto: el IVA por su porcentaje (100% o 50%).
-function gstIvaDeducible(g){ return Math.round((honNum(g.iva)||0)*(g.ivaDed||100))/100; }
-// La celda de IVA en la tabla: el IVA de la factura y, si se computa al 50%, cuánto queda deducible.
-function gstCeldaIva(f){
-  var g=f.g, iva=honNum(g.iva)||0;
-  if(f.tipo==='cuota')return '<span class="muted-cell" data-tip="El IVA se cuenta en el mes de la compra, no en el de la cuota">—</span>';
-  if(!g.conIva||!iva)return '<span class="muted-cell">—</span>';
-  return money(iva)+((g.ivaDed||100)===50?'<span class="gst-ded">50% → '+money(gstIvaDeducible(g))+'</span>':'');
-}
+// El IVA de las compras (gstIvaDelMes, gstIvaDeducible, gstCeldaIva y el detalle del mes) está en gastos-iva.js.
 // Honorarios cobrados en el mes (para la línea de resultado). Si no está esa sección, devuelve null.
 function gstCobradoDelMes(y,m){
   if(typeof honNumerosMes!=='function')return null;
@@ -278,7 +264,7 @@ function gstResultado(y,m,t){
       +celda('Diferencia',(dif<0?'− ':'')+money(Math.abs(dif)),dif<0?'neg':'ok');
   }
   if(iva)h+=celda(iv.ded===iva?'IVA de compras del mes':'IVA deducible del mes',money(iv.ded));
-  return h+'</div>';
+  return h+'</div>'+gstIvaDetalle(y,m);
 }
 
 function gstTablaAnual(){
@@ -374,7 +360,8 @@ function seedGastosVence(){
     {id:'gv1',fecha:fd(mm-1,14),vence:fd(mm-1,28),concepto:'Contribución inmobiliaria (cuota)',cat:'Impuestos y tasas',importe:3900,proveedor:'Intendencia',
       medio:'',pagado:false,fechaPago:'',factura:'',fijo:false,forma:'contado',conIva:false,iva:0,notas:'Venció el mes pasado: aparece en rojo hasta que se pague'},
     {id:'gv2',fecha:fd(mm,1),vence:fd(mm+1,5),concepto:'Seguro de la oficina',cat:'Otros',importe:2650,proveedor:'Aseguradora del Litoral',
-      medio:'Visa',pagado:true,fechaPago:fd(mm,1),factura:'',fijo:false,forma:'contado',conIva:false,iva:0,notas:'Vence el mes que viene, pero ya se pagó'},
+      medio:'Visa',pagado:true,fechaPago:fd(mm,1),factura:'A-9120',fijo:false,forma:'contado',conIva:true,ivaModo:'incluido',iva:478,ivaDed:100,
+      notas:'Vence el mes que viene, pero ya se pagó'},   // con IVA: se ve que cuenta en el mes de la factura y que no se repite
   ];
 }
 // Las cuotas de los ejemplos (se arman a partir de la compra a crédito).

@@ -127,3 +127,24 @@ tbody tr.imp-vacio td{color:var(--muted)}
 .hon-venc-chip{font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--blue);background:var(--blue-l);border-radius:10px;padding:2px 7px;margin-left:6px;white-space:nowrap}
 .hon-mes-nota{background:var(--blue-l);color:var(--blue);border-radius:8px;padding:8px 12px;font-size:12.5px;margin-bottom:12px}
 .hon-mes-calc{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;margin-top:4px}
+
+/* De dónde sale el IVA del mes (07/10/2026). La tabla de gastos es caja y el IVA es devengado. */
+.gst-ivadet{margin-top:10px;border:1px solid var(--border);border-radius:10px;background:var(--card);overflow:hidden}
+.gst-ivadet>summary{cursor:pointer;padding:10px 14px;font-size:13px;font-weight:600;color:var(--blue);list-style:none}
+.gst-ivadet>summary::-webkit-details-marker{display:none}
+.gst-ivadet>summary::before{content:'▸ ';font-weight:700}
+.gst-ivadet[open]>summary::before{content:'▾ '}
+.gst-ivadet>summary:hover{background:var(--blue-l)}
+.gst-ivadet-n{font-weight:700;color:var(--red);background:var(--red-l);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:6px}
+.gst-ivatab{width:100%;border-collapse:collapse;font-size:12.5px}
+.gst-ivatab th,.gst-ivatab td{padding:6px 14px;border-top:1px solid var(--border);text-align:left}
+.gst-ivatab th{background:var(--bg);font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+.gst-ivatab .num{text-align:right;white-space:nowrap}
+.gst-ivatab tfoot td{background:var(--bg)}
+.gst-ivafuera{background:var(--red-l)}
+.gst-ivanota{font-size:11px;color:var(--muted);font-style:italic}
+.gst-ivapie{padding:9px 14px;font-size:11.5px;line-height:1.5;color:var(--muted);border-top:1px solid var(--border);background:var(--bg)}
+/* La factura es de otro mes: su IVA cuenta allá, no acá. */
+.gst-iva-otro{font-size:11px;font-weight:700;color:var(--blue);background:var(--blue-l);border-radius:10px;padding:2px 8px;white-space:nowrap}
+/* IVA a pagar en automático: lo calcula la página y se actualiza solo. */
+.cell-in.imp-auto{color:var(--azul);font-style:italic}

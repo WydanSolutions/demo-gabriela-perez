@@ -19,7 +19,9 @@ const IMP_EST={pag:'Pagado',pen:'Pendiente',venc:'Vencido'};
 function impYear(){ return impAnio||anioActivo(); }
 function setImpAnio(y){ impAnio=y; renderImpuestos(); }
 function impFrecuencia(){ return vencCfg().frecuencia==='mensual'?'mensual':'bimestral'; }
-function setImpFrecuencia(f){ vencCfg().frecuencia=f; Store.save(); renderImpuestos(); }
+// Cada período guardado sabe en qué modo se cargó (fr). Al cambiar de modo se ven los períodos de ese modo:
+// lo cargado en el otro no se mezcla ni se reinterpreta, y vuelve a aparecer al volver.
+function setImpFrecuencia(f){ f=f==='mensual'?'mensual':'bimestral'; if(f===impFrecuencia())return; vencCfg().frecuencia=f; Store.save(); renderImpuestos(); }
 
 /* ===== LO QUE CALCULA LA PÁGINA ===== */
 // IVA de lo facturado en Honorarios: solo lo que tiene N° de factura, y en el mes de la FECHA DE FACTURA
@@ -51,19 +53,30 @@ function impPeriodos(y){
 /* ===== EL REGISTRO ===== */
 /* Una fila por período. Se crea recién cuando ella escribe algo. */
 function impFilaPeriodo(y,pi,crear){
-  var f=Store.all('impuestos').find(function(x){ return x.anio===y&&x.pi===pi; });
+  var fr=impFrecuencia();
+  var f=Store.all('impuestos').find(function(x){ return x.anio===y&&x.pi===pi&&(x.fr||'bimestral')===fr; });
   if(!f&&crear){
-    f={id:'ip'+y+'-'+pi+'-'+Math.floor(Math.random()*999),tipo:'periodo',anio:y,pi:pi,
+    f={id:'ip'+y+'-'+pi+'-'+fr[0]+Math.floor(Math.random()*999),tipo:'periodo',anio:y,pi:pi,fr:fr,
        iva:null,irpf:null,venc:'',pagado:false,fechaPago:'',comprobante:'',notas:''};
     Store.data.impuestos.push(f);
   }
   return f;
 }
-function impEstado(x){ return x.pagado?'pag':(x.venc&&daysTo(x.venc)<0?'venc':'pen'); }
-function impTotalFila(x){ return (honNum(x.iva)||0)+(honNum(x.irpf)||0); }
+/* EL IVA A PAGAR: automático por defecto, manual si ella escribe (07/10/2026, igual que María Lucía).
+   - Vacío = AUTOMÁTICO: muestra lo calculado (IVA facturado − IVA de gastos) y se actualiza solo.
+   - Escrito = MANUAL: manda lo suyo. Borrar el campo vuelve al automático.
+   - Al marcar el período como PAGADO se fija el importe de ese momento: lo que se pagó no cambia
+     después por corregir un honorario viejo. */
+function impIvaEfectivo(f,p){ var manual=honNum(f&&f.iva); if(manual!==null)return manual; return (p&&p.sugerido)?p.sugerido:null; }
+function impEsIvaAuto(f){ return honNum(f&&f.iva)===null; }
+function impTotalEfectivo(f,p){ return (impIvaEfectivo(f,p)||0)+(honNum(f&&f.irpf)||0); }
+function impEstadoPeriodo(y,p,f){ f=f||{}; if(f.pagado)return 'pag'; var venc=f.venc||p.venc||''; return (venc&&daysTo(venc)<0&&impTotalEfectivo(f,p)>0)?'venc':'pen'; }
 // Para el contador rojo de la subpestaña y el indicador del Panel.
-function impVencidos(){ return Store.all('impuestos').filter(function(x){
-  return impEstado(x)==='venc' && impTotalFila(x)>0; }); }
+function impVencidos(y){
+  y=+y||impYear();
+  return impPeriodos(y).map(function(p){ var f=impFilaPeriodo(y,p.i,false)||{}; return {p:p,f:f,est:impEstadoPeriodo(y,p,f)}; })
+    .filter(function(x){ return x.est==='venc'; }).map(function(x){ return x.f; });
+}
 
 function impSetPer(y,pi,campo,valor){
   var f=impFilaPeriodo(y,pi,true);
@@ -73,11 +86,13 @@ function impSetPer(y,pi,campo,valor){
 function impTogglePagoPer(y,pi){
   var f=impFilaPeriodo(y,pi,true);
   f.pagado=!f.pagado; if(f.pagado&&!f.fechaPago)f.fechaPago=today(); if(!f.pagado)f.fechaPago='';
+  // Se fija lo calculado: lo que se pagó no puede cambiar después por corregir un honorario viejo.
+  if(f.pagado&&impEsIvaAuto(f)){ var pp=impPeriodos(y).find(function(x){return x.i===pi;}); if(pp&&pp.sugerido)f.iva=pp.sugerido; }
   Store.save(); renderImpuestos();
 }
-function impRefrescar(){ var k=document.getElementById('imp-kpis'); if(k)k.innerHTML=impKpisHtml(impYear()); }
+function impRefrescar(){ renderImpuestos(); }   // la tabla también: el IVA automático y el estado dependen de lo escrito
 
-/* Rellena el IVA de los períodos que estén vacíos con lo que calculó la página. */
+/* «Fijar el IVA calculado»: pasa a manual (fijo) lo que hoy está en automático. */
 function impUsarCalculado(){
   var y=impYear(), n=0;
   impPeriodos(y).forEach(function(p){
@@ -87,7 +102,7 @@ function impUsarCalculado(){
     impFilaPeriodo(y,p.i,true).iva=p.sugerido; n++;
   });
   Store.save(); renderImpuestos();
-  toast(n?('✓ '+n+' período'+(n===1?'':'s')+' completado'+(n===1?'':'s')):'Ya estaban todos completos');
+  toast(n?('✓ '+n+' período'+(n===1?'':'s')+' fijado'+(n===1?'':'s')):'No había nada en automático para fijar');
 }
 
 /* ===== LA PANTALLA ===== */
@@ -102,8 +117,10 @@ function renderImpuestos(){
   h+='<div id="imp-kpis">'+impKpisHtml(y)+'</div>';
   h+=impTablaPeriodos(y);
   h+='<div class="hon-foot">💡 El <b>IVA facturado</b> sale de Honorarios: cuenta solo las filas con N° de factura y va al mes de la <b>fecha de factura</b>. '
-    +'El <b>IVA de gastos</b> sale de Gastos y ya contempla el 50% cuando corresponde. Lo que escribas en '
-    +'<b>IVA a pagar</b> e <b>IRPF</b> manda sobre lo calculado: la sugerencia es una ayuda. '
+    +'El <b>IVA de gastos</b> sale de Gastos y ya contempla el 50% cuando corresponde. '
+    +'El <b>IVA a pagar</b> viene <b style="font-style:italic;color:var(--azul)">calculado</b> (facturado − gastos) y se actualiza solo. '
+    +'Si escribís otro importe, manda el tuyo y deja de moverse; si borrás el campo, vuelve al calculado. '
+    +'Al marcar un período como <b>pagado</b> se fija el importe de ese momento. '
     +'Las fechas de vencimiento se corrigen en <b>⋯ → Configuración</b>.</div>';
   $('#view-imp').innerHTML=h;
 }
@@ -114,9 +131,9 @@ function impKpisHtml(y){
   var per=impPeriodos(y), v=0,c=0,aPagar=0,sinPagar=0,venc=0;
   per.forEach(function(p){
     v+=p.ventas; c+=p.compras;
-    var f=impFilaPeriodo(y,p.i,false); if(!f)return;
-    var t=impTotalFila(f); aPagar+=t;
-    if(!f.pagado){ sinPagar+=t; if(impEstado(f)==='venc'&&t>0)venc++; }
+    var f=impFilaPeriodo(y,p.i,false)||{};
+    var t=impTotalEfectivo(f,p); aPagar+=t;
+    if(!f.pagado){ sinPagar+=t; if(impEstadoPeriodo(y,p,f)==='venc')venc++; }
   });
   return '<div class="kpis kpis-4">'
     +kpiM('IVA facturado · '+y,money(v),'de los honorarios con factura','')
@@ -130,9 +147,9 @@ function impTablaPeriodos(y){
   var per=impPeriodos(y), t={v:0,c:0,iva:0,irpf:0};
   var filas=per.map(function(p){
     var f=impFilaPeriodo(y,p.i,false)||{};
-    var iva=honNum(f.iva), irpf=honNum(f.irpf);
+    var iva=impIvaEfectivo(f,p), auto=impEsIvaAuto(f), irpf=honNum(f.irpf);
     var venc=f.venc||p.venc||'';
-    var est=(f.pagado?'pag':(venc&&daysTo(venc)<0?'venc':'pen'));
+    var est=impEstadoPeriodo(y,p,f);
     var hayAlgo=p.ventas||p.compras||iva!==null||irpf!==null;
     t.v+=p.ventas; t.c+=p.compras; t.iva+=iva||0; t.irpf+=irpf||0;
     return '<tr'+(hayAlgo?'':' class="imp-vacio"')+'>'
@@ -141,7 +158,7 @@ function impTablaPeriodos(y){
         +(venc?'':'<div class="imp-falta">vence en enero de '+(y+1)+', que DGI publica en diciembre</div>')+'</td>'
       +'<td class="num">'+(p.ventas?money(p.ventas):'—')+'</td>'
       +'<td class="num">'+(p.compras?money(p.compras):'—')+'</td>'
-      +'<td>'+impInPer(y,p.i,'iva',iva,{ph:p.sugerido?numTxt(p.sugerido):'—',sug:p.sugerido})+'</td>'
+      +'<td>'+impInPer(y,p.i,'iva',iva,{ph:'—',sug:p.sugerido,auto:auto&&iva!==null})+'</td>'
       +'<td>'+impInPer(y,p.i,'irpf',irpf,{ph:'—'})+'</td>'
       +'<td>'+((iva||irpf)?'<span class="pill clk imp-'+est+'" onclick="impTogglePagoPer('+y+','+p.i+')">'+IMP_EST[est]+'</span>'
                          :'<span class="muted-cell">—</span>')+'</td>'
@@ -151,7 +168,7 @@ function impTablaPeriodos(y){
   var tot='<tr class="gst-tot"><td>TOTAL '+y+'</td><td></td><td class="num">'+money(t.v)+'</td><td class="num">'+money(t.c)+'</td>'
     +'<td class="num"><b>'+money(t.iva)+'</b></td><td class="num"><b>'+money(t.irpf)+'</b></td><td colspan="3"></td></tr>';
   return '<div class="card-head imp-head"><h3>Registro de '+y+'</h3>'
-    +'<button class="btn btn-sm" onclick="impUsarCalculado()">✨ Completar el IVA con lo calculado</button></div>'
+    +'<button class="btn btn-sm" onclick="impUsarCalculado()" data-tip="Deja fijo lo que hoy se calcula solo">📌 Fijar el IVA calculado</button></div>'
     +'<div class="table-wrap"><table style="min-width:1020px"><thead><tr>'
     +'<th>Período</th><th class="imp-venc">Vence</th>'
     +'<th class="num">IVA facturado</th><th class="num">IVA de gastos</th>'
@@ -163,9 +180,10 @@ function impTablaPeriodos(y){
 function impInPer(y,pi,campo,v,o){
   o=o||{}; var d=o.type==='date';
   var val=(campo==='iva'||campo==='irpf')?numTxt(v):(v==null?'':v);
-  return '<input class="cell-in'+(d?'':' num')+(o.sug&&v==null?' imp-sug':'')+'"'+(d?' type="date"'+DR:'')
+  return '<input class="cell-in'+(d?'':' num')+(o.auto?' imp-auto':'')+'"'+(d?' type="date"'+DR:'')
     +' value="'+esc(val)+'" placeholder="'+esc(o.ph||'—')+'"'
-    +(o.sug?' data-tip="La página calculó '+esc(numTxt(o.sug))+'. Podés escribir otro importe."':'')
+    +(o.auto?' data-tip="Lo calcula la página (IVA facturado − IVA de gastos) y se actualiza solo. Si escribís otro importe, manda el tuyo; si lo borrás, vuelve al calculado."'
+            :(o.sug&&campo==='iva'?' data-tip="Escrito por vos. La página calcula '+esc(numTxt(o.sug))+'. Borrá el campo para volver al calculado."':''))
     +' onchange="'+(d?'if(dateOk(this))':'')+'impSetPer('+y+','+pi+',\''+campo+'\',this.value)">';
 }
 
@@ -174,8 +192,8 @@ function impExpRows(){
   impPeriodos(y).forEach(function(p){
     var f=impFilaPeriodo(y,p.i,false)||{};
     datos.push([p.label,fDate(f.venc||p.venc),numTxt(p.ventas),numTxt(p.compras),
-      numTxt(honNum(f.iva)),numTxt(honNum(f.irpf)),
-      IMP_EST[impEstado(f.id?f:{venc:p.venc})],fDate(f.fechaPago),f.comprobante||'']);
+      numTxt(impIvaEfectivo(f,p)),numTxt(honNum(f.irpf)),
+      IMP_EST[impEstadoPeriodo(y,p,f)],fDate(f.fechaPago),f.comprobante||'']);
   });
   return {title:'Impuestos '+y,
     cols:['Período','Vence','IVA facturado','IVA de gastos','IVA a pagar','IRPF','Estado','Fecha de pago','Comprobante'],
@@ -183,14 +201,14 @@ function impExpRows(){
 }
 
 /* Datos de ejemplo para la demostración (inventados).
-   Coherentes con los honorarios de ejemplo: un solo cliente factura 8.900 por mes → IVA 1.958 →
-   3.916 por bimestre. Los tres primeros bimestres pagos, el cuarto vencido. */
+   El IVA va en null a propósito: así se ve el cálculo automático (facturado − gastos).
+   Cada fila con fr:'bimestral' (el modo en que se cargó). */
 function seedImpuestos(){
   var y=new Date().getFullYear(), out=[];
   if(!VENC_TABLA[y])return out;
-  [[0,3916,2400,true],[1,3916,2650,true],[2,3916,2500,true],[3,3916,2800,false]].forEach(function(p,i){
+  [[0,null,2400,true],[1,null,2650,true],[2,null,2500,true],[3,null,2800,false]].forEach(function(p,i){
     var vMes=(p[0]*2+2)%12;
-    out.push({id:'ip'+i,tipo:'periodo',anio:y,pi:p[0],iva:p[1],irpf:p[2],
+    out.push({id:'ip'+i,tipo:'periodo',anio:y,pi:p[0],fr:'bimestral',iva:p[1],irpf:p[2],
       venc:vencFecha('dgi_sp',y,vMes)||'',pagado:p[3],
       fechaPago:p[3]?(vencFecha('dgi_sp',y,vMes)||''):'',comprobante:p[3]?'B-'+(4100+i):'',notas:''});
   });

@@ -73,6 +73,9 @@ const Store={
     if(!d.panel)d.panel=PANEL_DEF();
     if(!d.gcal)d.gcal={url:'',auto:true,last:0};
     if(typeof vencCfg==='function')vencCfg(); // deja lista la configuración de vencimientos
+    // Impuestos: cada período guardado sabe si se cargó mensual o bimestral (07/10/2026). Los de antes, sin
+    // ese dato, quedan con el modo que estaba elegido; así cambiar de modo no los reinterpreta.
+    (d.impuestos||[]).forEach(function(x){ if(x&&x.tipo==='periodo'&&x.fr!=='mensual'&&x.fr!=='bimestral')x.fr=(d.venc&&d.venc.frecuencia==='mensual')?'mensual':'bimestral'; });
     // DEMOSTRACIÓN: si una sección quedó sin ejemplos (por ejemplo, porque esta persona abrió el demo
     // con una versión anterior, cuando Gastos todavía no existía), se vuelven a cargar.
     d.gastos.forEach(function(g){ if(g.conIva){ if(!g.ivaModo)g.ivaModo='incluido'; if(!g.ivaDed)g.ivaDed=100; } });

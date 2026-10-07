@@ -60,7 +60,7 @@ function cliTiposBtn(){
 function cliTiposMenu(e){e.stopPropagation();var el=document.getElementById('clitiposcfg');if(el)el.classList.toggle('open');}
 function cliTiposReopen(){var el=document.getElementById('clitiposcfg');if(el)el.classList.add('open');}
 function cliTipoAdd(){var i=document.getElementById('newtipo');cliTipoAddName(i&&i.value);renderClientes();cliTiposReopen();}
-function cliTipoEdit(i){var old=cliTipos()[i];var v=prompt('Nuevo nombre para el tipo «'+old+'»:',old);if(v===null)return;cliTipoRename(i,v);}
+function cliTipoEdit(i){var old=cliTipos()[i];pedirTexto('Renombrar tipo','Nuevo nombre para «'+old+'»',old,'Guardar',function(v){cliTipoRename(i,v);});}
 function cliTipoRename(i,v){v=(v||'').trim();var old=cliTipos()[i];if(!v||v===old){renderClientes();cliTiposReopen();return;}cliTipos()[i]=v;Store.all('clientes').forEach(function(c){if(c.tipo===old)c.tipo=v;});if(_clt===old)_clt=v;Store.save();renderClientes();cliTiposReopen();}
 function cliTipoDel(i){var t=cliTipos()[i];var n=Store.all('clientes').filter(function(c){return c.tipo===t;}).length;if(!confirm('¿Borrar el tipo «'+t+'»?'+(n?' '+n+' cliente'+(n===1?'':'s')+' quedarían sin tipo.':'')))return;cliTipos().splice(i,1);Store.all('clientes').forEach(function(c){if(c.tipo===t)c.tipo='';});if(_clt===t)_clt='';Store.save();renderClientes();cliTiposReopen();}
 document.addEventListener('click',function(){var s=document.getElementById('clitiposcfg');if(s)s.classList.remove('open');});

@@ -185,7 +185,7 @@ function gastoSave(){
   else {
     o.cuotas=null; o.primera='';
     o.vence=(g.vence&&g.vence!==o.fecha)?g.vence:'';        // vacío = vence el día de la compra
-    o.pagado=!!g.pagado; o.fechaPago=o.pagado?(g.fechaPago||o.vence||o.fecha):'';
+    o.pagado=!!g.pagado; o.fechaPago=o.pagado?(g.fechaPago||o.fecha):'';
   }
   gstCatAddName(o.cat);
   var guardado=Store.upsert('gastos',o);

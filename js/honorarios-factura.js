@@ -65,16 +65,20 @@ function honFFacCelda(r,mv,y,m){
 }
 function honVencidoChip(r){ return honEsVencido(r)?' <span class="hon-venc-chip" data-tip="Factura a mes vencido: el cobro se espera hasta fin del mes siguiente">mes vencido</span>':''; }
 
+function honEsNumeroFinito(n){ return typeof n==='number'&&isFinite(n); }
+
 /* Ventana de UN mes de un cliente (se abre desde la vista anual, como en la página del Estudio W. Machado):
    se ve y se corrige ese mes sin salir de la vista anual. */
 function honMesForm(rowId,m){
   var r=Store.get('honCli',rowId); if(!r)return;
   var y=honYear(), mv=honMovOf(rowId,y,m)||{};
-  var imp=mv.importe!=null&&mv.importe!==''?mv.importe:r.importe;
+  var impRaw=mv.importe!=null&&mv.importe!==''?mv.importe:r.importe;
+  var impNum=honNum(impRaw);
+  var imp=(impNum===null)?(impRaw==null?'':String(impRaw)):numTxt(impNum);
   curForm={form:'honmes',rowId:rowId,m:m};
   $('#modal-title').textContent=cliNameOr(r.clienteId)+' · '+MESES_L[m]+' '+y; $('#modal-del').style.display='none';
   $('#modal-body').innerHTML=(honEsVencido(r)?'<div class="hon-mes-nota">Este cliente factura a <b>mes vencido</b>: la factura de '+MESES_L[m].toLowerCase()+' se emite el mes siguiente.</div>':'')
-    +'<div class="field"><label>Honorarios sin IVA</label><input id="hm-imp" value="'+esc(numTxt(imp))+'" placeholder="Ej: 2.500" oninput="honMesCalc()"></div>'
+    +'<div class="field"><label>Honorarios sin IVA</label><input id="hm-imp" value="'+esc(imp)+'" placeholder="Ej: 2.500" oninput="honMesCalc()"></div>'
     +'<div class="field-2"><div class="field"><label>N° de factura <span class="opt">(activa el IVA)</span></label><input id="hm-fac" value="'+esc(mv.factura||'')+'" placeholder="sin N° → sin IVA" oninput="honMesAlEscribir()"></div>'
     +'<div class="field"><label>Fecha de factura <span class="opt">(el IVA va a ese mes)</span></label><input type="date" id="hm-ffac"'+DR+' value="'+esc(mv.fFac||'')+'" onchange="honMesAyuda()"></div></div>'
     +'<div class="gst-ayuda" id="hm-ayuda" style="margin:-4px 0 10px"></div>'
@@ -100,18 +104,34 @@ function honMesAyuda(){
 }
 function honMesCalc(){
   var el=document.getElementById('hm-calc'); if(!el)return;
-  var imp=honNum((document.getElementById('hm-imp')||{}).value), fac=((document.getElementById('hm-fac')||{}).value||'').trim();
+  var r=Store.get('honCli',curForm.rowId)||{};
+  var raw=((document.getElementById('hm-imp')||{}).value||'').trim();
+  var fac=((document.getElementById('hm-fac')||{}).value||'').trim();
+  var imp=raw===''?honNum(r.importe):honNum(raw);
+  var usaHabitual=(raw===''&&imp!==null);
   if(imp===null){ el.innerHTML='<span class="muted-cell">Sin importe: este mes no se cobra.</span>'; return; }
   var iva=fac?Math.round(imp*IVA*100)/100:0;
-  el.innerHTML='Honorarios <b>'+money(imp)+'</b> · IVA 22% <b>'+(iva?money(iva):'—')+'</b> · Total <b>'+money(imp+iva)+'</b>';
+  el.innerHTML='Honorarios <b>'+money(imp)+'</b> · IVA 22% <b>'+(iva?money(iva):'—')+'</b> · Total <b>'+money(imp+iva)+'</b>'
+    +(usaHabitual?'<span class="gst-ayuda" style="display:block;margin-top:6px">Vacío = usa el honorario mensual del cliente.</span>':'');
 }
 function honMesSave(){
   var rowId=curForm.rowId, m=curForm.m, y=honYear(), r=Store.get('honCli',rowId); if(!r)return;
   var mv=honMovOf(rowId,y,m);
   if(!mv){ mv={id:'hm'+Date.now()+Math.floor(Math.random()*999),rowId:rowId,anio:y,mes:m}; Store.data.honMov.push(mv); }
   var v=function(id){ return ((document.getElementById(id)||{}).value||'').trim(); };
-  var imp=v('hm-imp');
-  mv.importe=(honNum(imp)===honNum(r.importe))?'':imp;     // igual al honorario mensual = el de siempre
+  var impRaw=v('hm-imp'), impNum, baseNum=honNum(r.importe);
+  if(!impRaw){
+    mv.importe='';                                           // vacío = usa el honorario mensual
+    impNum=baseNum;
+  }else{
+    impNum=honNum(impRaw);
+    if(!honEsNumeroFinito(impNum)){
+      toast('Revisá el importe: no es válido');
+      var ii=document.getElementById('hm-imp'); if(ii)ii.focus();
+      return;
+    }
+    mv.importe=(baseNum!==null&&impNum===baseNum)?'':numTxt(impNum);
+  }
   mv.factura=v('hm-fac'); mv.fFac=mv.factura?v('hm-ffac'):''; mv.fecha=v('hm-fecha');
   mv.medio=v('hm-medio'); mv.recibo=v('hm-rec');
   Store.save(); closeModal(); renderHonBody(); toast('Guardado · '+MESES_L[m]);

@@ -31,7 +31,7 @@ function certTip(iso){ if(!iso)return 'Sin fecha cargada'; var d=daysTo(iso); re
 function certCelda(t,rid,c,iso){
   var est=certEstado(iso);
   return '<td class="cert-td'+(est?' cert-'+est:'')+(iso?'':' cert-vacio')+'" data-tip="'+esc(c.n+' · '+certTip(iso))+'"><input class="cell-in cert-in" type="date"'+DR
-    +' value="'+esc(iso||'')+'" onchange="if(dateOk(this))certSet(\''+t+'\',\''+rid+'\',\''+c.id+'\',this.value)"></td>';
+    +' value="'+esc(iso||'')+'" onclick="try{this.showPicker()}catch(e){}" onchange="if(dateOk(this))certSet(\''+t+'\',\''+rid+'\',\''+c.id+'\',this.value)"></td>';
 }
 function certHead(t){ return certLista(t).map(function(c){ return '<th class="cert-th">'+esc(c.n)+'</th>'; }).join(''); }
 function certCeldasFila(t,row){ var cs=row.certs||{}; return certLista(t).map(function(c){ return certCelda(t,row.id,c,cs[c.id]); }).join(''); }

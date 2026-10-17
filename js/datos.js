@@ -86,6 +86,9 @@ const Store={
       const ej=seedNuevas(), sumar=function(cids){ cids.forEach(function(id){ if(!d.clientes.some(function(c){return c.id===id;})){ const c=ej.clientes.find(function(x){return x.id===id;}); if(c)d.clientes.push(c); } }); };
       ['inac','dicosa'].forEach(function(f){ if(!d.dj.some(function(x){return x.folder===f;})){ const nuevas=ej.dj.filter(function(x){return x.folder===f;}); sumar(nuevas.map(function(x){return x.clienteId;})); d.dj=d.dj.concat(nuevas); } });
       if(!d.debitos.length){ sumar(ej.debitos.map(function(x){return x.clienteId;})); d.debitos=ej.debitos; }
+      // Vencimientos de certificados (17/10/2026): a quien abrió el demo antes se le cargan los ejemplos.
+      if(typeof sembrarCertEmpresas==='function'&&d.grids.empresas.rows.length&&d.grids.empresas.rows.every(function(r){ return !r.certs||!Object.keys(r.certs).length; }))sembrarCertEmpresas(d.grids.empresas.rows);
+      if(typeof asocVencEjemplo==='function'&&!Array.isArray(d.asocVenc)){ sumar(['c7','c10']); d.asocVenc=asocVencEjemplo(); }
       // Grillas sin ningún mes marcado y calendario sin eventos: se completan con ejemplos (02/10/2026).
       if(['empresas','sprof'].every(function(g){ return d.grids[g].rows.every(function(r){ return !Object.keys(r.cells||{}).length; }); }))sembrarCeldas(d.grids);
       if(!d.cal.length)d.cal=eventosEjemplo();
@@ -145,11 +148,12 @@ function seed(){
     sueldos:{rows:[]},
   };
   sembrarCeldas(grids);
+  sembrarCertEmpresas(grids.empresas.rows);   // vencimientos de certificados (certificados.js)
   const gastos=seedGastos();
   const notes=[{id:'n1',text:NOTA_BIENVENIDA,color:'#fff3bf',date:''}];
   const h=seedHon();
   const ej=seedNuevas();
-  return {clientes:cl.concat(ej.clientes),dj:dj.concat(ej.dj),debitos:ej.debitos,tareas,grids,cal:eventosEjemplo(),notes:notes,gastos:gastos,cuotas:seedCuotas(gastos),impuestos:seedImpuestos(),gastoCats:GASTO_CATS_DEF.slice(),sueldos:seedSueldos(),sldSubs:defaultSubs(),sldHidden:[],empTipos:EMP_TIPOS_DEF.slice(),cliTipos:CLI_TIPOS_DEF.slice(),honCli:h.cli,honMov:h.mov,gcal:{url:'',auto:true,last:0},panel:PANEL_DEF()};
+  return {clientes:cl.concat(ej.clientes),dj:dj.concat(ej.dj),debitos:ej.debitos,asocVenc:asocVencEjemplo(),tareas,grids,cal:eventosEjemplo(),notes:notes,gastos:gastos,cuotas:seedCuotas(gastos),impuestos:seedImpuestos(),gastoCats:GASTO_CATS_DEF.slice(),sueldos:seedSueldos(),sldSubs:defaultSubs(),sldHidden:[],empTipos:EMP_TIPOS_DEF.slice(),cliTipos:CLI_TIPOS_DEF.slice(),honCli:h.cli,honMov:h.mov,gcal:{url:'',auto:true,last:0},panel:PANEL_DEF()};
 }
 
 // Ejemplos de DJ INAC, DJ Rural DICOSE y Asoc. Civiles (también se usan para completar el demo de quien
@@ -163,6 +167,7 @@ function seedNuevas(){
       {id:'c7',nombre:'Asoc. Civil Club Social Unión',tipo:'Asociación civil',rut:'',bps:'',notas:''},
       {id:'c8',nombre:'Carnicería El Novillo',tipo:'Empresa',rut:'',bps:'',notas:''},
       {id:'c9',nombre:'Rodríguez, Martín',tipo:'Persona física',ci:'',notas:'Productor rural'},
+      {id:'c10',nombre:'Asoc. Civil Comisión de Fomento Barrio Sur',tipo:'Asociación civil',rut:'',bps:'',notas:''},
     ],
     dj:[
       Object.assign({},dj0,{id:'x1',folder:'inac',anio:yy,clienteId:'c8',nroDj:'214785',tipoDj:'Mensual',kilos:'12.450',venc:d(mm,25)}),

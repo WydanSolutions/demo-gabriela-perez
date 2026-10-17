@@ -64,3 +64,19 @@
 /* 4 · Arcos dorados alrededor de la tarjeta */
 #login[data-fondo="arcos"]{background:linear-gradient(135deg,var(--azul-osc) 0%,var(--azul) 55%,var(--azul-borde) 100%)}
 #login[data-fondo="arcos"] .lf-arcos{display:block;inset:0;width:100%;height:100%;stroke:var(--dorado-logo)}
+
+/* Vencimientos de certificados (17/10/2026) */
+:root{ --cert:#7b5ea7; --cert-l:#f1ecf8; }
+.cert-th{font-size:10.5px;white-space:nowrap}
+.cert-td{min-width:112px;padding-left:6px;padding-right:6px}
+.cert-td.cert-vacio .cert-in{opacity:.35}
+.cert-td.cert-vacio .cert-in:focus{opacity:1}
+.cert-in{font-size:12px;padding-left:4px;padding-right:2px}
+.cert-td.cert-venc{background:var(--red-l)} .cert-td.cert-venc .cert-in{color:var(--red);font-weight:700}
+.cert-td.cert-pronto{background:var(--amber-l)} .cert-td.cert-pronto .cert-in{color:var(--amber);font-weight:700}
+.cert-resumen{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;font-size:12px}
+.cert-resumen.ok{color:var(--green);font-weight:700}
+.cert-chip{font-size:11px;font-weight:700;border-radius:10px;padding:2px 9px}
+.cert-chip.venc{background:var(--red-l);color:var(--red)} .cert-chip.pronto{background:var(--amber-l);color:var(--amber)}
+.cert-sel{margin:4px 0 12px}
+.cal-ev.ev-cert{background:var(--cert-l);color:var(--cert);border-left:3px solid var(--cert)}

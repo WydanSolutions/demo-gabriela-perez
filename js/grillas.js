@@ -1,9 +1,13 @@
 /*
  * Grillas mensuales: Empresas / Servicios profesionales.
  * El nombre y el tipo se editan directo en la tabla; el nombre queda vinculado a su ficha en Info. Clientes.
+ * EMPRESAS lleva además los vencimientos de certificados (certificados.js): columnas en la vista mensual, y en
+ * la vista de todo el año un selector «Meses | Certificados» (17/10/2026).
  */
 /* ===== GRILLAS MENSUALES ===== */
 let gridMonth={empresas:new Date().getMonth(),sprof:new Date().getMonth()};
+let gridAnual='meses';   // Empresas, vista de todo el año: 'meses' o 'certs'
+function setGridAnual(v){ gridAnual=v; renderGrid('empresas'); }
 const GRID_META={empresas:{title:'Empresas',tag:'Tipo',hasTag:true,cliTipo:'Empresa'},sprof:{title:'Serv. Profesionales',hasTag:false,cliTipo:'Persona física'}};
 // Las celdas se guardan por año y mes ("2026-8"): el año es el año de trabajo (Configuración → Año fiscal).
 function ck(mi){return anioActivo()+'-'+mi;}
@@ -17,7 +21,7 @@ function renderGrid(gid){
   const tot=(rows.length-na)||1;
   let h='<div class="view-head"><div><h2>'+meta.title+' <span style="color:var(--muted);font-weight:400">'+anioActivo()+'</span></h2></div></div>';
   h+='<div class="gtoolbar"><span class="glegend"><span class="lg"><i style="background:var(--green)"></i>Hecho</span><span class="lg"><i style="background:var(--amber)"></i>Pendiente</span><span class="lg"><i style="background:#c3cad6"></i>N/A</span><span class="lg">✈ Enviado al cliente</span></span>'
-    +'<span class="spacer"></span>'+expBtns('grid',gid)+'<button class="btn btn-sm btn-primary" onclick="openGridRow(\''+gid+'\')">+ Agregar fila</button></div>';
+    +'<span class="spacer"></span>'+(gid==='empresas'?'<button class="btn btn-sm" onclick="certConfig(\'emp\')" data-tip="Agregar, renombrar u ordenar los certificados">⚙ Certificados</button>':'')+expBtns('grid',gid)+'<button class="btn btn-sm btn-primary" onclick="openGridRow(\''+gid+'\')">+ Agregar fila</button></div>';
   h+='<div class="months"><button class="mbtn'+(mSel===-1?' active':'')+'" onclick="setGridMonth(\''+gid+'\',-1)">Todos</button>'+MESES.map((m,i)=>'<button class="mbtn'+(mSel===i?' active':'')+'" onclick="setGridMonth(\''+gid+'\','+i+')">'+m.toUpperCase()+'</button>').join('')+'</div>';
   if(mSel>=0){
     const kc = meta.hasTag
@@ -25,8 +29,12 @@ function renderGrid(gid){
       : kpi('Realizados',done,MESES_L[mSel],'k-green')+kpi('Pendientes',pend,'sin registrar','k-amber')+kpi('Completado',Math.round(done/tot*100)+'%','del mes','k-acento');
     h+='<div class="kpis" style="grid-template-columns:repeat('+(meta.hasTag?4:3)+',1fr)">'+kc+'</div>';
   }
-  const months = mSel>=0?[mSel]:[...Array(12).keys()];
-  let head='<th>Nombre</th>'+(meta.hasTag?'<th>'+meta.tag+'</th>':'')+months.map(i=>'<th style="text-align:center">'+MESES[i].toUpperCase()+'</th>').join('')+'<th></th>';
+  // Certificados: en Empresas, siempre en la vista mensual; en la de todo el año, si se eligió «Certificados».
+  const conCert = gid==='empresas' && (mSel>=0 || gridAnual==='certs');
+  if(gid==='empresas'&&mSel<0) h+='<div class="cert-sel"><span class="gseg"><button class="gv'+(gridAnual==='meses'?' active':'')+'" onclick="setGridAnual(\'meses\')">▦ Meses</button><button class="gv'+(gridAnual==='certs'?' active':'')+'" onclick="setGridAnual(\'certs\')">📜 Certificados</button></span></div>';
+  if(conCert) h+=certResumen('emp',rows);
+  const months = mSel>=0?[mSel]:(conCert?[]:[...Array(12).keys()]);
+  let head='<th>Nombre</th>'+(meta.hasTag?'<th>'+meta.tag+'</th>':'')+months.map(i=>'<th style="text-align:center">'+MESES[i].toUpperCase()+'</th>').join('')+(conCert?certHead('emp'):'')+'<th></th>';
   let body=rows.length?rows.map(r=>{
     let td='<tr><td><div class="name-cell">'+cliInput(r.nombre,'gridSetName(\''+gid+'\',\''+r.id+'\',this.value)','Nombre…')+(r.clienteId?'<button class="go-cli" title="Ver la ficha del cliente" onclick="goCli(\''+r.clienteId+'\')">↗</button>':'')+'</div></td>';
     if(meta.hasTag) td+='<td><input class="cell-in fit" list="dl-emptipos" autocomplete="off" value="'+esc(r.tipo||'')+'" placeholder="+ tipo" onchange="gridSet(\''+gid+'\',\''+r.id+'\',\'tipo\',this.value)"></td>';
@@ -36,10 +44,11 @@ function renderGrid(gid){
       else if(st==='pend') inner='<span class="gcell go-pend">⏳</span>';
       else if(st==='na') inner='<span class="gcell go-na">N/A</span>';
       return '<td style="text-align:center" onclick="openCellEditor(\''+gid+'\',\''+r.id+'\','+i+')">'+inner+'</td>';}).join('');
+    if(conCert) td+=certCeldasFila('emp',r);
     td+='<td>'+actions('grid:'+gid,r.id)+'</td></tr>'; return td;
-  }).join('') : emptyRow(months.length+(meta.hasTag?3:2),'Sin filas. Usá "+ Agregar fila".');
+  }).join('') : emptyRow(months.length+(meta.hasTag?3:2)+(conCert?certLista('emp').length:0),'Sin filas. Usá "+ Agregar fila".');
   h+='<datalist id="dl-emptipos">'+(Store.data.empTipos||[]).map(x=>'<option value="'+esc(x)+'">').join('')+'</datalist>';
-  h+='<div class="table-wrap"><table><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';
+  h+='<div class="table-wrap"><table'+(conCert?' class="t-ficha"':'')+'><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';
   $('#view-'+gid).innerHTML=h;
 }
 function gridSet(gid,rid,f,v){const r=gridRow(gid,rid);if(!r)return;r[f]=v;if(f==='tipo'&&v&&(Store.data.empTipos||[]).indexOf(v)<0)Store.data.empTipos.push(v);Store.save();}

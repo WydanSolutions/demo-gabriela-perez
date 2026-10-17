@@ -10,7 +10,13 @@ function expRows(kind,arg){
       data:rows.map(function(d){return [cliName(d.clienteId),d.nroDj||'',d.tipoDj||''].concat(ex.map(function(c){return d[c.k]||'';})).concat([fDate(d.venc),fDate(d.presentada),d.importe||'',d.medio||'',fDate(d.fechaPago),d.estado||'',d.notas||'']);})};
   }
   if(kind==='debitos'){var rows=debFiltered();return {title:'Asoc. Civiles · Débitos',cols:['Asociación','Plataforma','Período','Importe','Pago','Fecha de pago','Notas'],data:rows.map(function(b){return [cliNameOr(b.clienteId)||b.asociacion||'',b.plataforma||'',b.periodo||'',b.importe||'',b.cargado?'Sí':'No',fDate(b.fecha),b.notas||''];})};}
-  if(kind==='grid'){var gid=arg,meta=GRID_META[gid],rows=Store.data.grids[gid].rows;var cols=['Nombre'].concat(meta.hasTag?['Tipo']:[]).concat(MESES);return {title:meta.title+' '+anioActivo(),cols:cols,data:rows.map(function(r){var row=[r.nombre];if(meta.hasTag)row.push(r.tipo||'');for(var i=0;i<12;i++){var c=gcell(r,i),st=cellEst(c);row.push(st==='done'?(c.fecha?fDate(c.fecha):'Hecho')+(c.enviado?' (enviado)':''):st==='na'?'N/A':st==='pend'?'Pendiente':'');}return row;})};}
+  // Empresas: con los vencimientos de los certificados al final (certificados.js).
+  if(kind==='grid'&&arg==='empresas'&&typeof certLista==='function'){
+    var base=expRowsGrid(arg), cl=certLista('emp');
+    return {title:base.title,cols:base.cols.concat(cl.map(function(c){return c.n+' (vence)';})),
+      data:Store.data.grids.empresas.rows.map(function(r,k){ return base.data[k].concat(cl.map(function(c){ var v=(r.certs||{})[c.id]; return v?fDate(v):''; })); })};
+  }
+  if(kind==='grid'||kind==='grid-base'){var gid=arg,meta=GRID_META[gid],rows=Store.data.grids[gid].rows;var cols=['Nombre'].concat(meta.hasTag?['Tipo']:[]).concat(MESES);return {title:meta.title+' '+anioActivo(),cols:cols,data:rows.map(function(r){var row=[r.nombre];if(meta.hasTag)row.push(r.tipo||'');for(var i=0;i<12;i++){var c=gcell(r,i),st=cellEst(c);row.push(st==='done'?(c.fecha?fDate(c.fecha):'Hecho')+(c.enviado?' (enviado)':''):st==='na'?'N/A':st==='pend'?'Pendiente':'');}return row;})};}
   if(kind==='sueldos'){var rows=sldRows(sldSub),sub=sldSubsList().find(function(s){return s.id===sldSub;}),sc=sldCols();return {title:'Sueldos · '+(sub?sub.name:'')+' · '+MESES_L[sldMes]+' '+sldAnio,cols:['Empresa','Estado'].concat(sc.map(function(c){return c.label;})),data:rows.map(function(r){return [r.empresa,r.estado].concat(sc.map(function(c){return c.type==='check'?(r[c.key]?'Sí':''):(r[c.key]||'');}));})};}
   // Clientes: todas las columnas de la ficha, contraseñas incluidas (pedido del cliente; se avisa antes de exportar).
   if(kind==='clientes'){var rows=_cliFiltered();return {title:'Info. Clientes',cols:['Nombre','Tipo','RUT','BPS','CI','Fecha nac.','Contraseña BPS','Contraseña gub.uy','Códigos gub.uy','WhatsApp','Correo','Dirección','Otros','Observaciones','Notas','Estado'],data:rows.map(function(c){return [c.nombre,c.tipo||'',c.rut||'',c.bps||'',c.ci||'',c.fnac?fDate(c.fnac):'',c.passBps||'',c.passGub||'',c.codGub||'',c.whatsapp||'',c.correo||'',c.direccion||'',c.fosmetal||'',c.otros||'',c.notas||'',c.archivado?'Archivado':'Activo'];})};}
@@ -60,3 +66,6 @@ function exportPDF(title,cols,data){
     +'<div class="noprint" style="margin-top:22px"><button onclick="window.print()" style="padding:10px 18px;background:#0f2447;color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer">🖨 Imprimir / Guardar PDF</button></div></body></html>');
   w.document.close();setTimeout(function(){try{w.focus();}catch(e){}},250);
 }
+
+// La grilla sin los certificados (la usa la exportación de Empresas para sumarle las fechas al final).
+function expRowsGrid(gid){ return expRows('grid-base',gid); }

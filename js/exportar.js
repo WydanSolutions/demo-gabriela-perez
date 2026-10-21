@@ -11,10 +11,10 @@ function expRows(kind,arg){
   }
   if(kind==='debitos'){var rows=debFiltered();return {title:'Asoc. Civiles · Débitos',cols:['Asociación','Plataforma','Período','Importe','Pago','Fecha de pago','Notas'],data:rows.map(function(b){return [cliNameOr(b.clienteId)||b.asociacion||'',b.plataforma||'',b.periodo||'',b.importe||'',b.cargado?'Sí':'No',fDate(b.fecha),b.notas||''];})};}
   // Empresas: con los vencimientos de los certificados al final (certificados.js).
-  if(kind==='grid'&&arg==='empresas'&&typeof certLista==='function'){
-    var base=expRowsGrid(arg), cl=certLista('emp');
-    return {title:base.title,cols:base.cols.concat(cl.map(function(c){return c.n+' (vence)';})),
-      data:Store.data.grids.empresas.rows.map(function(r,k){ return base.data[k].concat(cl.map(function(c){ var v=(r.certs||{})[c.id]; return v?fDate(v):''; })); })};
+  if(kind==='grid'&&(arg==='empresas'||arg==='rurales')&&typeof certLista==='function'){
+    var base=expRowsGrid(arg), cl=certLista(certTipoDeGrid(arg));
+    return {title:base.title,cols:base.cols.concat(cl.map(function(c){return c.n+' (vence)';})).concat(['Notas']),
+      data:Store.data.grids[arg].rows.map(function(r,k){ return base.data[k].concat(cl.map(function(c){ var v=(r.certs||{})[c.id]; return v?fDate(v):''; })).concat([r.nota||'']); })};
   }
   if(kind==='grid'||kind==='grid-base'){var gid=arg,meta=GRID_META[gid],rows=Store.data.grids[gid].rows;var cols=['Nombre'].concat(meta.hasTag?['Tipo']:[]).concat(MESES);return {title:meta.title+' '+anioActivo(),cols:cols,data:rows.map(function(r){var row=[r.nombre];if(meta.hasTag)row.push(r.tipo||'');for(var i=0;i<12;i++){var c=gcell(r,i),st=cellEst(c);row.push(st==='done'?(c.fecha?fDate(c.fecha):'Hecho')+(c.enviado?' (enviado)':''):st==='na'?'N/A':st==='pend'?'Pendiente':'');}return row;})};}
   if(kind==='sueldos'){var rows=sldRows(sldSub),sub=sldSubsList().find(function(s){return s.id===sldSub;}),sc=sldCols();return {title:'Sueldos · '+(sub?sub.name:'')+' · '+MESES_L[sldMes]+' '+sldAnio,cols:['Empresa','Estado'].concat(sc.map(function(c){return c.label;})),data:rows.map(function(r){return [r.empresa,r.estado].concat(sc.map(function(c){return c.type==='check'?(r[c.key]?'Sí':''):(r[c.key]||'');}));})};}

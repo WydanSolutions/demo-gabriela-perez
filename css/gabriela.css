@@ -96,3 +96,37 @@ main:has(#view-empresas.active){max-width:none}
 @media(max-width:760px){ #view-empresas .cert-td{width:auto} #view-empresas .cert-in{text-align:right} }
 main:has(#view-empresas.active){padding-left:14px;padding-right:14px}
 #view-empresas td:first-child{max-width:180px}
+
+/* Empresas Rurales: lo mismo que Empresas (todo el ancho y fechas compactas) */
+main:has(#view-rurales.active){max-width:none;padding-left:14px;padding-right:14px}
+#view-rurales td:first-child{max-width:180px}
+#view-rurales th,#view-rurales td{padding-left:8px;padding-right:8px}
+#view-rurales .cert-in::-webkit-calendar-picker-indicator{display:none}
+#view-rurales .cert-in{width:100%;min-width:0;padding-left:2px;padding-right:2px;text-align:center;cursor:pointer}
+#view-rurales .cert-td{min-width:0;width:86px;padding-left:4px;padding-right:4px}
+#view-rurales .cert-th{white-space:normal;line-height:1.25;width:86px;text-align:center;font-size:10px;letter-spacing:.3px}
+@media(max-width:760px){ #view-rurales .cert-td{width:auto} #view-rurales .cert-in{text-align:right} }
+
+/* Notas debajo de cada fila (20/10/2026) · verde suave, la opción que eligió la usuaria */
+:root{ --nota:#2e7d52; --nota-bg:#e9f6ee; --nota-borde:#c5e6d2; --nota-texto:#1f5a3a; --nota-vacia:#f3faf6; --nota-gris:#7aa58b; }
+tr.nf td{padding:0 12px 12px!important;border-top:none!important;background:transparent!important}
+tr:has(+ tr.nf) td{border-bottom:none}
+.nf-box{display:flex;align-items:flex-start;gap:10px;background:var(--nota-bg);border:1px solid var(--nota-borde);border-left:4px solid var(--nota);border-radius:8px;padding:8px 12px;font-size:12.5px;color:var(--nota-texto);cursor:pointer;transition:background .15s}
+.nf-box:hover{background:#dff1e6}
+.nf-box.vacia{background:var(--nota-vacia);color:var(--nota-gris);font-style:italic;border-style:dashed;border-left-style:solid;padding-top:6px;padding-bottom:6px}
+.nf-box.editando{cursor:text;background:#fff;align-items:center}
+.nf-ico{font-size:14px;line-height:1.3} .nf-t{flex:1;line-height:1.45;white-space:normal}
+.nf-ed{color:var(--nota);font-size:12px;font-weight:700;white-space:nowrap}
+.nf-in{flex:1;border:none;outline:none;resize:none;font:inherit;color:var(--nota-texto);background:transparent;min-height:38px;line-height:1.45}
+.nf-ayuda{font-size:11px;color:var(--nota-gris);white-space:nowrap}
+@media(max-width:760px){
+  .t-ficha tr.nf{display:block;margin:-10px 0 14px;border:none;box-shadow:none;background:transparent;padding:0}
+  .t-ficha tr.nf td{display:block;padding:0!important}
+  .t-ficha tr.nf td::before{display:none!important}
+  .nf-ayuda{display:none}
+}
+/* El tipo se acorta solo en pantallas chicas, donde hace falta para que entren los 9 certificados. */
+@media(max-width:1500px){ #view-empresas td .cell-in.fit,#view-rurales td .cell-in.fit{max-width:84px;text-overflow:ellipsis} }
+/* La nota ocupa todo el ancho (la regla del nombre a 180 px no le corresponde). */
+#view-empresas tr.nf td,#view-rurales tr.nf td{max-width:none!important;width:auto}
+@media(max-width:760px){ .t-ficha tr.nf td{width:100%!important} }

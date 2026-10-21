@@ -112,7 +112,7 @@ function saveForm(){
   if(curForm.form&&curForm.form.startsWith('grid:')){
     const gid=curForm.gid; const o={}; $('#modal-body').querySelectorAll('[data-k]').forEach(el=>o[el.dataset.k]=el.value);
     o.nombre=(o.nombre||'').trim(); if(!o.nombre){toast('Falta el nombre');return;}
-    if(gid==='empresas'&&o.tipo&&(Store.data.empTipos||[]).indexOf(o.tipo)<0){Store.data.empTipos.push(o.tipo);}
+    if((gid==='empresas'||gid==='rurales')&&o.tipo&&(Store.data.empTipos||[]).indexOf(o.tipo)<0){Store.data.empTipos.push(o.tipo);}
     const cid=ensureCli(o.nombre,GRID_META[gid].cliTipo), arr=Store.data.grids[gid].rows;
     if(curForm.id){const r=arr.find(x=>x.id===curForm.id);r.nombre=o.nombre;r.clienteId=cid;if(o.tipo!==undefined)r.tipo=o.tipo;}
     else arr.push({id:'g'+Date.now(),nombre:o.nombre,clienteId:cid,tipo:o.tipo||'',cells:{}});

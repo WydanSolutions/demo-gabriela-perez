@@ -63,7 +63,7 @@ const Store={
     const d=this.data;
     COLS_LISTA.forEach(k=>{ if(!Array.isArray(d[k]))d[k]=[]; });
     if(!d.grids)d.grids=emptyGrids();
-    ['empresas','sprof'].forEach(g=>{ if(!d.grids[g])d.grids[g]={rows:[]}; });
+    ['empresas','sprof','rurales'].forEach(g=>{ if(!d.grids[g])d.grids[g]={rows:[]}; });
     if(!Array.isArray(d.sldSubs)||!d.sldSubs.length)d.sldSubs=defaultSubs();
     if(!Array.isArray(d.sldHidden))d.sldHidden=[];
     if(!d.sldColsCfg||typeof d.sldColsCfg!=='object')d.sldColsCfg={};
@@ -89,6 +89,12 @@ const Store={
       // Vencimientos de certificados (17/10/2026): a quien abrió el demo antes se le cargan los ejemplos.
       if(typeof sembrarCertEmpresas==='function'&&d.grids.empresas.rows.length&&d.grids.empresas.rows.every(function(r){ return !r.certs||!Object.keys(r.certs).length; }))sembrarCertEmpresas(d.grids.empresas.rows);
       if(typeof asocVencEjemplo==='function'&&!Array.isArray(d.asocVenc)){ sumar(['c7','c10']); d.asocVenc=asocVencEjemplo(); }
+      // Empresas Rurales y notas (20/10/2026): a quien abrió el demo antes se le cargan los ejemplos una vez.
+      if(!d.ejRurales){
+        d.ejRurales=true;
+        if(!d.grids.rurales.rows.length){ sumar(['c4','c9','c11','c12']); d.grids.rurales.rows=ruralesEjemplo(); sembrarCeldas({rurales:d.grids.rurales},['rurales']); sembrarCertEmpresas(d.grids.rurales.rows,1); }
+        if(typeof sembrarNotas==='function'){ sembrarNotas('empresas',d.grids.empresas.rows); sembrarNotas('rurales',d.grids.rurales.rows); sembrarNotas('asoc',d.asocVenc||[]); }
+      }
       // Grillas sin ningún mes marcado y calendario sin eventos: se completan con ejemplos (02/10/2026).
       if(['empresas','sprof'].every(function(g){ return d.grids[g].rows.every(function(r){ return !Object.keys(r.cells||{}).length; }); }))sembrarCeldas(d.grids);
       if(!d.cal.length)d.cal=eventosEjemplo();
@@ -114,7 +120,7 @@ const Store={
   remove(c,id){ this.data[c]=this.all(c).filter(x=>x.id!==id); this.save(); }
 };
 
-function emptyGrids(){ return {empresas:{rows:[]},sprof:{rows:[]},sueldos:{rows:[]}}; }
+function emptyGrids(){ return {empresas:{rows:[]},sprof:{rows:[]},rurales:{rows:[]},sueldos:{rows:[]}}; }
 
 /* ===== DATOS DE EJEMPLO PARA LA DEMOSTRACIÓN — TODOS INVENTADOS ===== */
 function seed(){
@@ -145,15 +151,19 @@ function seed(){
   const grids={
     empresas:{rows:[{id:'e1',nombre:'Panadería La Espiga SRL',clienteId:'c2',tipo:'CEDE',cells:{}},{id:'e2',nombre:'Almacén Doña Nelly',clienteId:'c5',tipo:'No CEDE',cells:{}},{id:'e3',nombre:'Transportes del Norte SA',clienteId:'c3',tipo:'CEDE',cells:{}},{id:'e4',nombre:'Carnicería El Novillo',clienteId:'c8',tipo:'No CEDE',cells:{}}]},
     sprof:{rows:[{id:'s1',nombre:'Techera, Rodrigo',clienteId:'c6',tipo:'',cells:{}},{id:'s2',nombre:'Silveira, Valentina',clienteId:'c1',tipo:'',cells:{}}]},
+    rurales:{rows:ruralesEjemplo()},
     sueldos:{rows:[]},
   };
   sembrarCeldas(grids);
   sembrarCertEmpresas(grids.empresas.rows);   // vencimientos de certificados (certificados.js)
+  sembrarCertEmpresas(grids.rurales.rows,1);
+  sembrarNotas('empresas',grids.empresas.rows); sembrarNotas('rurales',grids.rurales.rows);   // notas-filas.js
   const gastos=seedGastos();
   const notes=[{id:'n1',text:NOTA_BIENVENIDA,color:'#fff3bf',date:''}];
   const h=seedHon();
   const ej=seedNuevas();
-  return {clientes:cl.concat(ej.clientes),dj:dj.concat(ej.dj),debitos:ej.debitos,asocVenc:asocVencEjemplo(),tareas,grids,cal:eventosEjemplo(),notes:notes,gastos:gastos,cuotas:seedCuotas(gastos),impuestos:seedImpuestos(),gastoCats:GASTO_CATS_DEF.slice(),sueldos:seedSueldos(),sldSubs:defaultSubs(),sldHidden:[],empTipos:EMP_TIPOS_DEF.slice(),cliTipos:CLI_TIPOS_DEF.slice(),honCli:h.cli,honMov:h.mov,gcal:{url:'',auto:true,last:0},panel:PANEL_DEF()};
+  var av=asocVencEjemplo(); sembrarNotas('asoc',av);
+  return {clientes:cl.concat(ej.clientes),dj:dj.concat(ej.dj),debitos:ej.debitos,asocVenc:av,tareas,grids,cal:eventosEjemplo(),notes:notes,gastos:gastos,cuotas:seedCuotas(gastos),impuestos:seedImpuestos(),gastoCats:GASTO_CATS_DEF.slice(),sueldos:seedSueldos(),sldSubs:defaultSubs(),sldHidden:[],empTipos:EMP_TIPOS_DEF.slice(),cliTipos:CLI_TIPOS_DEF.slice(),honCli:h.cli,honMov:h.mov,gcal:{url:'',auto:true,last:0},panel:PANEL_DEF()};
 }
 
 // Ejemplos de DJ INAC, DJ Rural DICOSE y Asoc. Civiles (también se usan para completar el demo de quien
@@ -168,6 +178,8 @@ function seedNuevas(){
       {id:'c8',nombre:'Carnicería El Novillo',tipo:'Empresa',rut:'',bps:'',notas:''},
       {id:'c9',nombre:'Rodríguez, Martín',tipo:'Persona física',ci:'',notas:'Productor rural'},
       {id:'c10',nombre:'Asoc. Civil Comisión de Fomento Barrio Sur',tipo:'Asociación civil',rut:'',bps:'',notas:''},
+      {id:'c11',nombre:'Agropecuaria El Ombú SA',tipo:'Empresa',rut:'',bps:'',notas:''},
+      {id:'c12',nombre:'Pereira Hnos. (tambo)',tipo:'Empresa',rut:'',bps:'',notas:''},
     ],
     dj:[
       Object.assign({},dj0,{id:'x1',folder:'inac',anio:yy,clienteId:'c8',nroDj:'214785',tipoDj:'Mensual',kilos:'12.450',venc:d(mm,25)}),
@@ -184,9 +196,10 @@ function seedNuevas(){
 
 // Empresas y Serv. Profesionales con los meses ya trabajados: los anteriores hechos y enviados, el actual a medias.
 // (Las celdas se guardan por año: "año-mes", con el mes de 0 a 11.)
-function sembrarCeldas(grids){
+function sembrarCeldas(grids,cuales){
   const yy=new Date().getFullYear(), mi=new Date().getMonth(), f=(m,day)=>yy+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
-  ['empresas','sprof'].forEach(function(g){
+  (cuales||['empresas','sprof','rurales']).forEach(function(g){
+    if(!grids[g])return;
     (grids[g].rows||[]).forEach(function(r,i){
       r.cells=r.cells||{};
       for(let m=0;m<mi;m++){
@@ -208,4 +221,12 @@ function eventosEjemplo(){
     {id:'ev2',titulo:'Capacitación DGI: novedades de IVA',fecha:d(mm,Math.min(dd+6,28))},
     {id:'ev3',titulo:'Visita a Estancia Los Ceibos',fecha:d(m2,4)},
   ];
+}
+
+// Empresas Rurales de ejemplo (inventadas).
+function ruralesEjemplo(){
+  return [{id:'r1',nombre:'Estancia Los Ceibos',clienteId:'c4',tipo:'Primaria Rural',cells:{}},
+          {id:'r2',nombre:'Agropecuaria El Ombú SA',clienteId:'c11',tipo:'Primaria Rural',cells:{}},
+          {id:'r3',nombre:'Rodríguez, Martín',clienteId:'c9',tipo:'Productor',cells:{}},
+          {id:'r4',nombre:'Pereira Hnos. (tambo)',clienteId:'c12',tipo:'Primaria Rural',cells:{}}];
 }

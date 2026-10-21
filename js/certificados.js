@@ -6,7 +6,8 @@
  * El vencimiento es UNA fecha por empresa (no una por mes): cuando se renueva, se cambia la fecha.
  * Las listas de certificados se pueden editar (⚙ Certificados): cada uno tiene un id, así renombrarlo no pierde las fechas.
  * Todas las fechas salen en el Calendario (pastilla «Certificados» para mostrarlas u ocultarlas).
- * Datos: Store.data.certEmp / certAsoc = [{id,n}] (las listas) · grids.empresas.rows[].certs = {id:'AAAA-MM-DD'}
+ * EMPRESAS RURALES (20/10/2026): la misma estructura, con su propia lista de certificados (empieza igual).
+ * Datos: Store.data.certEmp / certRur / certAsoc = [{id,n}] (las listas) · grids.empresas|rurales.rows[].certs = {id:'AAAA-MM-DD'}
  *        · Store.data.asocVenc = [{id, asociacion, clienteId, certs:{id:'AAAA-MM-DD'}}].
  */
 /* ===== CERTIFICADOS ===== */
@@ -16,10 +17,16 @@ const CERT_AVISO_DIAS=30;   // «por vencer»: vence en 30 días o menos
 
 function certSlug(n){ return String(n||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')||('c'+Date.now()); }
 function certDef(lista){ return lista.map(function(n){ return {id:certSlug(n),n:n}; }); }
-// La lista de certificados de cada lado ('emp' = Empresas, 'asoc' = Asoc. civiles).
+// Cada tabla con certificados: 'emp' = Empresas, 'rur' = Empresas Rurales (grillas) y 'asoc' = Asoc. civiles.
+const CERT_TABLAS={emp:{clave:'certEmp',def:CERT_EMP_DEF,grid:'empresas',titulo:'Empresas'},
+                   rur:{clave:'certRur',def:CERT_EMP_DEF,grid:'rurales',titulo:'Empresas Rurales'},
+                   asoc:{clave:'certAsoc',def:CERT_ASOC_DEF,grid:null,titulo:'Asoc. civiles'}};
+function certTipoDeGrid(gid){ return gid==='rurales'?'rur':'emp'; }
+function certFilas(t){ var g=CERT_TABLAS[t].grid; return g?((Store.data.grids[g]||{}).rows||[]):asocVencRows(); }
+// La lista de certificados de cada tabla (editable con ⚙ Certificados).
 function certLista(t){
-  var k=t==='asoc'?'certAsoc':'certEmp';
-  if(!Array.isArray(Store.data[k]))Store.data[k]=certDef(t==='asoc'?CERT_ASOC_DEF:CERT_EMP_DEF);
+  var k=CERT_TABLAS[t].clave;
+  if(!Array.isArray(Store.data[k]))Store.data[k]=certDef(CERT_TABLAS[t].def);
   return Store.data[k];
 }
 function asocVencRows(){ if(!Array.isArray(Store.data.asocVenc))Store.data.asocVenc=[]; return Store.data.asocVenc; }
@@ -44,17 +51,17 @@ function certResumen(t,rows){
 }
 
 function certSet(t,rid,cid,v){
-  var row=t==='asoc'?asocVencRows().find(function(x){return x.id===rid;}):gridRow('empresas',rid);
+  var row=certFilas(t).find(function(x){return x.id===rid;});
   if(!row)return; row.certs=row.certs||{};
   if(v)row.certs[cid]=v; else delete row.certs[cid];
   Store.save(); certRefrescar(t);
 }
-function certRefrescar(t){ if(t==='asoc'){ renderAsocVenc(); } else renderGrid('empresas'); }
+function certRefrescar(t){ if(t==='asoc'){ renderAsocVenc(); } else renderGrid(CERT_TABLAS[t].grid); }
 
 /* ===== ⚙ Editar la lista de certificados ===== */
 function certConfig(t){
   curForm={form:'noop'};
-  $('#modal-title').textContent='Certificados · '+(t==='asoc'?'Asoc. civiles':'Empresas'); $('#modal-del').style.display='none';
+  $('#modal-title').textContent='Certificados · '+CERT_TABLAS[t].titulo; $('#modal-del').style.display='none';
   $('#modal-body').innerHTML='<p class="muted-cell" style="font-size:12.5px;margin-bottom:10px">Cambiá el nombre de un certificado, ordenalos o sacá el que no uses. Las fechas ya cargadas no se pierden al renombrar.</p>'
     +certLista(t).map(function(c,i,a){ return '<div class="colrow"><input value="'+esc(c.n)+'" onchange="certRenombrar(\''+t+'\','+i+',this.value)">'
       +'<button class="btn-ghost" title="Subir" '+(i===0?'disabled':'')+' onclick="certMover(\''+t+'\','+i+',-1)">↑</button>'
@@ -70,7 +77,7 @@ function certMover(t,i,d){ var l=certLista(t), j=i+d; if(j<0||j>=l.length)return
 function certSacar(t,i){
   var c=certLista(t)[i]; if(!confirm('¿Sacar «'+c.n+'» de la lista? Se borran también sus fechas.'))return;
   certLista(t).splice(i,1);
-  (t==='asoc'?asocVencRows():Store.data.grids.empresas.rows).forEach(function(r){ if(r.certs)delete r.certs[c.id]; });
+  certFilas(t).forEach(function(r){ if(r.certs)delete r.certs[c.id]; });
   Store.save(); certRefrescar(t); certConfig(t);
 }
 function certAgregar(t){
@@ -89,7 +96,8 @@ function renderAsocVenc(){
     return '<tr><td><div class="name-cell">'+cliInput(cliNameOr(r.clienteId)||r.asociacion,'asocVencSetCli(\''+r.id+'\',this.value)','Asociación…')
       +(r.clienteId?'<button class="go-cli" title="Ver la ficha del cliente" onclick="goCli(\''+r.clienteId+'\')">↗</button>':'')+'</div></td>'
       +certCeldasFila('asoc',r)
-      +'<td><div class="row-act"><button class="btn-ghost" title="Quitar" style="color:var(--red)" onclick="asocVencBorrar(\''+r.id+'\')">🗑</button></div></td></tr>';
+      +'<td><div class="row-act"><button class="btn-ghost" title="Quitar" style="color:var(--red)" onclick="asocVencBorrar(\''+r.id+'\')">🗑</button></div></td></tr>'
+      +notaFila('asoc',r,n+2);
   }).join(''):emptyRow(n+2,'Todavía no hay asociaciones. Tocá «+ Asociación».');
   el.innerHTML='<div class="view-head" style="margin-top:28px"><div><h2 style="font-size:20px">Vencimientos por asociación</h2>'
     +'<div class="sub">Certificados de cada asociación: en rojo los vencidos, en ámbar los que vencen en 30 días o menos. Salen en el Calendario.</div></div>'
@@ -117,7 +125,7 @@ function certCalToggle(){ Store.data.certCal=!certCalVisible(); Store.save(); re
 // Todas las fechas de certificados: [{iso, txt}]
 function certEventos(){
   var out=[];
-  (Store.data.grids.empresas.rows||[]).forEach(function(r){ var cs=r.certs||{}; certLista('emp').forEach(function(c){ if(cs[c.id])out.push({iso:cs[c.id],txt:(r.nombre||'Empresa')+' · '+c.n+' vence'}); }); });
+  ['emp','rur'].forEach(function(t){ certFilas(t).forEach(function(r){ var cs=r.certs||{}; certLista(t).forEach(function(c){ if(cs[c.id])out.push({iso:cs[c.id],txt:(r.nombre||'Empresa')+' · '+c.n+' vence'}); }); }); });
   asocVencRows().forEach(function(r){ var cs=r.certs||{}; certLista('asoc').forEach(function(c){ if(cs[c.id])out.push({iso:cs[c.id],txt:(cliNameOr(r.clienteId)||r.asociacion||'Asociación')+' · '+c.n+' vence'}); }); });
   return out;
 }
@@ -130,14 +138,14 @@ calEventsMap=function(){
 var _calLeyendaVencBase=calLeyendaVenc;
 calLeyendaVenc=function(){
   var h=_calLeyendaVencBase(), on=certCalVisible();
-  var chip='<button class="vchip'+(on?'':' off')+'" onclick="certCalToggle()" data-tip="Vencimientos de certificados de Empresas y Asoc. civiles"><i style="background:var(--cert)"></i>📜 Certificados</button>';
+  var chip='<button class="vchip'+(on?'':' off')+'" onclick="certCalToggle()" data-tip="Vencimientos de certificados de Empresas, Empresas Rurales y Asoc. civiles"><i style="background:var(--cert)"></i>📜 Certificados</button>';
   return h.replace('<span class="vleyenda-n">',chip+'<span class="vleyenda-n">');
 };
 
 /* ===== EJEMPLOS (inventados) ===== */
 // Fechas alrededor de hoy: algunas vencidas, otras por vencer y el resto más adelante.
 function certFechaEj(dias){ var d=new Date(); d.setDate(d.getDate()+dias); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-function sembrarCertEmpresas(rows){
+function sembrarCertEmpresas(rows,desfase){
   var plan=[ // días desde hoy por certificado (null = sin cargar), en el orden de CERT_EMP_DEF
     [95,-6,140,null,null,60,null,null,210],        // Panadería: BPS vencido
     [180,22,75,null,null,12,null,null,300],         // Almacén: BPS y BSE AT por vencer
@@ -145,7 +153,7 @@ function sembrarCertEmpresas(rows){
     [70,200,110,null,null,90,null,18,260],          // Carnicería: INAC por vencer
   ];
   var ids=certDef(CERT_EMP_DEF).map(function(c){return c.id;});
-  (rows||[]).forEach(function(r,i){ var p=plan[i%plan.length]; r.certs={}; ids.forEach(function(id,k){ if(p[k]!==null)r.certs[id]=certFechaEj(p[k]); }); });
+  (rows||[]).forEach(function(r,i){ var p=plan[(i+(desfase||0))%plan.length]; r.certs={}; ids.forEach(function(id,k){ if(p[k]!==null)r.certs[id]=certFechaEj(p[k]); }); });
 }
 function asocVencEjemplo(){
   var ids=certDef(CERT_ASOC_DEF).map(function(c){return c.id;});

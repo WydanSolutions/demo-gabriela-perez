@@ -11,7 +11,7 @@ function expRows(kind,arg){
   }
   if(kind==='debitos'){var rows=debFiltered();return {title:'Asoc. Civiles · Débitos',cols:['Asociación','Plataforma','Período','Importe','Pago','Fecha de pago','Notas'],data:rows.map(function(b){return [cliNameOr(b.clienteId)||b.asociacion||'',b.plataforma||'',b.periodo||'',b.importe||'',b.cargado?'Sí':'No',fDate(b.fecha),b.notas||''];})};}
   // Empresas: con los vencimientos de los certificados al final (certificados.js).
-  if(kind==='grid'&&(arg==='empresas'||arg==='rurales')&&typeof certLista==='function'){
+  if(kind==='grid'&&(arg==='empresas'||arg==='rurales'||arg==='sprof')&&typeof certLista==='function'){
     var base=expRowsGrid(arg), cl=certLista(certTipoDeGrid(arg));
     return {title:base.title,cols:base.cols.concat(cl.map(function(c){return c.n+' (vence)';})).concat(['Notas']),
       data:Store.data.grids[arg].rows.map(function(r,k){ return base.data[k].concat(cl.map(function(c){ var v=(r.certs||{})[c.id]; return v?fDate(v):''; })).concat([r.nota||'']); })};

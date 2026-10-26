@@ -1,5 +1,5 @@
 /*
- * Notas debajo de cada fila (20/10/2026, pedido de la clienta): en Empresas, Empresas Rurales y en
+ * Notas debajo de cada fila (20/10/2026, pedido de la clienta): en Empresas, Empresas Rurales, Serv. Profesionales y en
  * «Vencimientos por asociación». Un renglón verde suave, más chico que la fila, donde se lee la nota y se
  * edita ahí mismo (se toca, se escribe y se guarda al salir del campo; Esc cancela).
  * Se guarda en la propia fila: row.nota (texto).
@@ -42,6 +42,8 @@ var NOTAS_EJ={
     'El INAC se tramita con el despachante: falta que nos manden la planilla de faena de setiembre.'],
   rurales:['La DJ de DICOSE se presenta con el escribano en junio. Pedir el detalle del stock.','',
     'Cambió de banco: actualizar la cuenta para el débito del BPS rural.'],
+  sprof:['Factura electrónica: renovar el certificado digital antes de fin de mes.','',
+    'Pidió pasar a cuota mensual fija desde enero.'],
   asoc:['El BPS venció: la presidenta firma el lunes. Llevar el formulario impreso.','Comisión nueva electa en agosto: actualizar los datos en el RUPE.'],
 };
 function sembrarNotas(t,rows){ (rows||[]).forEach(function(r,i){ var n=NOTAS_EJ[t][i%NOTAS_EJ[t].length]; if(n&&!r.nota)r.nota=n; }); }

@@ -6,12 +6,12 @@
  */
 /* ===== GRILLAS MENSUALES ===== */
 let gridMonth={empresas:new Date().getMonth(),sprof:new Date().getMonth(),rurales:new Date().getMonth()};
-let gridAnual={empresas:'meses',rurales:'meses'};   // vista de todo el año: 'meses' o 'certs'
+let gridAnual={empresas:'meses',rurales:'meses',sprof:'meses'};   // vista de todo el año: 'meses' o 'certs'
 function setGridAnual(gid,v){ gridAnual[gid]=v; renderGrid(gid); }
 // certs: lleva vencimientos de certificados (certificados.js) · notas: renglón de notas debajo de cada fila (notas-filas.js).
 const GRID_META={empresas:{title:'Empresas',tag:'Tipo',hasTag:true,cliTipo:'Empresa',certs:true,notas:true},
   rurales:{title:'Empresas Rurales',tag:'Tipo',hasTag:true,cliTipo:'Empresa',certs:true,notas:true},
-  sprof:{title:'Serv. Profesionales',hasTag:false,cliTipo:'Persona física'}};
+  sprof:{title:'Serv. Profesionales',hasTag:false,cliTipo:'Persona física',certs:true,notas:true}};
 // Las celdas se guardan por año y mes ("2026-8"): el año es el año de trabajo (Configuración → Año fiscal).
 function ck(mi){return anioActivo()+'-'+mi;}
 function gcell(r,mi){return (r.cells||{})[ck(mi)]||{};}

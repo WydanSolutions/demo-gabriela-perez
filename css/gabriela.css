@@ -130,3 +130,17 @@ tr:has(+ tr.nf) td{border-bottom:none}
 /* La nota ocupa todo el ancho (la regla del nombre a 180 px no le corresponde). */
 #view-empresas tr.nf td,#view-rurales tr.nf td{max-width:none!important;width:auto}
 @media(max-width:760px){ .t-ficha tr.nf td{width:100%!important} }
+
+/* Serv. Profesionales con certificados y notas (26/10/2026): lo mismo que Empresas */
+main:has(#view-sprof.active){max-width:none;padding-left:14px;padding-right:14px}
+#view-sprof td:first-child{max-width:200px}
+#view-sprof .cert-in::-webkit-calendar-picker-indicator{display:none}
+#view-sprof .cert-in{width:100%;min-width:0;padding-left:2px;padding-right:2px;text-align:center;cursor:pointer}
+#view-sprof .cert-td{min-width:0;width:86px;padding-left:4px;padding-right:4px}
+#view-sprof .cert-th{white-space:normal;line-height:1.25;width:86px;text-align:center;font-size:10px;letter-spacing:.3px}
+#view-sprof th,#view-sprof td{padding-left:8px;padding-right:8px}
+#view-sprof tr.nf td{max-width:none!important;width:auto}
+@media(max-width:760px){ #view-sprof .cert-td{width:auto} #view-sprof .cert-in{text-align:right} }
+/* Tocar el título de un certificado lo renombra */
+.cert-th-ed{cursor:pointer}
+.cert-th-ed:hover{text-decoration:underline dotted;text-underline-offset:3px}

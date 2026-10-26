@@ -90,6 +90,12 @@ const Store={
       if(typeof sembrarCertEmpresas==='function'&&d.grids.empresas.rows.length&&d.grids.empresas.rows.every(function(r){ return !r.certs||!Object.keys(r.certs).length; }))sembrarCertEmpresas(d.grids.empresas.rows);
       if(typeof asocVencEjemplo==='function'&&!Array.isArray(d.asocVenc)){ sumar(['c7','c10']); d.asocVenc=asocVencEjemplo(); }
       // Empresas Rurales y notas (20/10/2026): a quien abrió el demo antes se le cargan los ejemplos una vez.
+      // Serv. Profesionales con certificados y notas (26/10/2026): ejemplos una sola vez.
+      if(!d.ejSprof){
+        d.ejSprof=true;
+        if(typeof sembrarCertPro==='function'&&d.grids.sprof.rows.every(function(r){ return !r.certs||!Object.keys(r.certs).length; }))sembrarCertPro(d.grids.sprof.rows);
+        if(typeof sembrarNotas==='function')sembrarNotas('sprof',d.grids.sprof.rows);
+      }
       if(!d.ejRurales){
         d.ejRurales=true;
         if(!d.grids.rurales.rows.length){ sumar(['c4','c9','c11','c12']); d.grids.rurales.rows=ruralesEjemplo(); sembrarCeldas({rurales:d.grids.rurales},['rurales']); sembrarCertEmpresas(d.grids.rurales.rows,1); }
@@ -157,7 +163,8 @@ function seed(){
   sembrarCeldas(grids);
   sembrarCertEmpresas(grids.empresas.rows);   // vencimientos de certificados (certificados.js)
   sembrarCertEmpresas(grids.rurales.rows,1);
-  sembrarNotas('empresas',grids.empresas.rows); sembrarNotas('rurales',grids.rurales.rows);   // notas-filas.js
+  sembrarCertPro(grids.sprof.rows);
+  sembrarNotas('empresas',grids.empresas.rows); sembrarNotas('rurales',grids.rurales.rows); sembrarNotas('sprof',grids.sprof.rows);   // notas-filas.js
   const gastos=seedGastos();
   const notes=[{id:'n1',text:NOTA_BIENVENIDA,color:'#fff3bf',date:''}];
   const h=seedHon();

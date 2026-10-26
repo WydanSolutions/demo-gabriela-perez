@@ -20,8 +20,9 @@ function certDef(lista){ return lista.map(function(n){ return {id:certSlug(n),n:
 // Cada tabla con certificados: 'emp' = Empresas, 'rur' = Empresas Rurales (grillas) y 'asoc' = Asoc. civiles.
 const CERT_TABLAS={emp:{clave:'certEmp',def:CERT_EMP_DEF,grid:'empresas',titulo:'Empresas'},
                    rur:{clave:'certRur',def:CERT_EMP_DEF,grid:'rurales',titulo:'Empresas Rurales'},
+                   pro:{clave:'certPro',def:CERT_EMP_DEF,grid:'sprof',titulo:'Serv. Profesionales'},
                    asoc:{clave:'certAsoc',def:CERT_ASOC_DEF,grid:null,titulo:'Asoc. civiles'}};
-function certTipoDeGrid(gid){ return gid==='rurales'?'rur':'emp'; }
+function certTipoDeGrid(gid){ return gid==='rurales'?'rur':(gid==='sprof'?'pro':'emp'); }
 function certFilas(t){ var g=CERT_TABLAS[t].grid; return g?((Store.data.grids[g]||{}).rows||[]):asocVencRows(); }
 // La lista de certificados de cada tabla (editable con ⚙ Certificados).
 function certLista(t){
@@ -40,7 +41,12 @@ function certCelda(t,rid,c,iso){
   return '<td class="cert-td'+(est?' cert-'+est:'')+(iso?'':' cert-vacio')+'" data-tip="'+esc(c.n+' · '+certTip(iso))+'"><input class="cell-in cert-in" type="date"'+DR
     +' value="'+esc(iso||'')+'" onclick="try{this.showPicker()}catch(e){}" onchange="if(dateOk(this))certSet(\''+t+'\',\''+rid+'\',\''+c.id+'\',this.value)"></td>';
 }
-function certHead(t){ return certLista(t).map(function(c){ return '<th class="cert-th">'+esc(c.n)+'</th>'; }).join(''); }
+function certHead(t){ return certLista(t).map(function(c,i){ return '<th class="cert-th cert-th-ed" onclick="certRenombrarCol(\''+t+'\','+i+')" data-tip="Tocá para cambiarle el nombre">'+esc(c.n)+'</th>'; }).join(''); }
+// Renombrar tocando el título (26/10/2026). Las fechas no se pierden: se guardan por id, no por nombre.
+function certRenombrarCol(t,i){
+  var c=certLista(t)[i]; if(!c)return;
+  pedirTexto('Cambiar el nombre','Nombre de la columna «'+c.n+'»',c.n,'Guardar',function(v){ c.n=v; Store.save(); certRefrescar(t); toast('Nombre cambiado'); });
+}
 function certCeldasFila(t,row){ var cs=row.certs||{}; return certLista(t).map(function(c){ return certCelda(t,row.id,c,cs[c.id]); }).join(''); }
 // Cuántos vencidos y por vencer hay (para el aviso arriba de la tabla).
 function certResumen(t,rows){
@@ -125,7 +131,7 @@ function certCalToggle(){ Store.data.certCal=!certCalVisible(); Store.save(); re
 // Todas las fechas de certificados: [{iso, txt}]
 function certEventos(){
   var out=[];
-  ['emp','rur'].forEach(function(t){ certFilas(t).forEach(function(r){ var cs=r.certs||{}; certLista(t).forEach(function(c){ if(cs[c.id])out.push({iso:cs[c.id],txt:(r.nombre||'Empresa')+' · '+c.n+' vence'}); }); }); });
+  ['emp','rur','pro'].forEach(function(t){ certFilas(t).forEach(function(r){ var cs=r.certs||{}; certLista(t).forEach(function(c){ if(cs[c.id])out.push({iso:cs[c.id],txt:(r.nombre||'Empresa')+' · '+c.n+' vence'}); }); }); });
   asocVencRows().forEach(function(r){ var cs=r.certs||{}; certLista('asoc').forEach(function(c){ if(cs[c.id])out.push({iso:cs[c.id],txt:(cliNameOr(r.clienteId)||r.asociacion||'Asociación')+' · '+c.n+' vence'}); }); });
   return out;
 }
@@ -138,7 +144,7 @@ calEventsMap=function(){
 var _calLeyendaVencBase=calLeyendaVenc;
 calLeyendaVenc=function(){
   var h=_calLeyendaVencBase(), on=certCalVisible();
-  var chip='<button class="vchip'+(on?'':' off')+'" onclick="certCalToggle()" data-tip="Vencimientos de certificados de Empresas, Empresas Rurales y Asoc. civiles"><i style="background:var(--cert)"></i>📜 Certificados</button>';
+  var chip='<button class="vchip'+(on?'':' off')+'" onclick="certCalToggle()" data-tip="Vencimientos de certificados de Empresas, Empresas Rurales, Serv. Profesionales y Asoc. civiles"><i style="background:var(--cert)"></i>📜 Certificados</button>';
   return h.replace('<span class="vleyenda-n">',chip+'<span class="vleyenda-n">');
 };
 
@@ -163,3 +169,5 @@ function asocVencEjemplo(){
   return [{id:'av1',asociacion:'Asoc. Civil Club Social Unión',clienteId:'c7',certs:a},
           {id:'av2',asociacion:'Asoc. Civil Comisión de Fomento Barrio Sur',clienteId:'c10',certs:b}];
 }
+// Ejemplos de Serv. Profesionales: los mismos 9 certificados que Empresas (decisión de la usuaria, 26/10/2026).
+function sembrarCertPro(rows){ sembrarCertEmpresas(rows,2); }
